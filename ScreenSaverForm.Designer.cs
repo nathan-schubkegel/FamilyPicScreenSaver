@@ -4,19 +4,16 @@ You have complete freedom to do anything you want with the software, for any pur
 Please refer to <http://unlicense.org/>
 */
 
+using LibVLCSharp.WinForms;
+using LibVLCSharp;
+using LibVLCSharp.Shared;
+
 namespace FamilyPicScreenSaver
 {
   partial class ScreenSaverForm
   {
-    /// <summary>
-    /// Required designer variable.
-    /// </summary>
     private System.ComponentModel.IContainer components = null;
 
-    /// <summary>
-    /// Clean up any resources being used.
-    /// </summary>
-    /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
     protected override void Dispose(bool disposing)
     {
       if (disposing && (components != null))
@@ -26,20 +23,38 @@ namespace FamilyPicScreenSaver
       base.Dispose(disposing);
     }
 
-    #region Windows Form Designer generated code
-
-    /// <summary>
-    /// Required method for Designer support - do not modify
-    /// the contents of this method with the code editor.
-    /// </summary>
     private void InitializeComponent()
     {
+      _libVLC = new LibVLC();
+      _mp = new MediaPlayer(_libVLC);
+
       this.components = new System.ComponentModel.Container();
-      this.changePictureTimer = new System.Windows.Forms.Timer(this.components);
+      this._videoView1 = new LibVLCSharp.WinForms.VideoView();
+      this._pictureBox1 = new System.Windows.Forms.PictureBox();
+      ((System.ComponentModel.ISupportInitialize)(this._videoView1)).BeginInit();
+      this._changePictureTimer = new System.Windows.Forms.Timer(this.components);
       this.SuspendLayout();
       // 
-      // ScreenSaverForm
+      // _videoView1
       // 
+      this._videoView1.BackColor = System.Drawing.Color.Black;
+      this._videoView1.Dock = System.Windows.Forms.DockStyle.Fill;
+      this._videoView1.Location = new System.Drawing.Point(0, 0);
+      this._videoView1.MediaPlayer = _mp;
+      this._videoView1.Name = "_videoView1";
+      this._videoView1.TabIndex = 0;
+      //
+      // _pictureBox1
+      //
+      this._pictureBox1.BackColor = System.Drawing.Color.Black;
+      this._pictureBox1.Dock = System.Windows.Forms.DockStyle.Fill;
+      this._pictureBox1.Location = new System.Drawing.Point(0, 0);
+      this._pictureBox1.Name = "_pictureBox1";
+      this._pictureBox1.TabIndex = 0;
+      this._pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
+      //
+      // ScreenSaverForm
+      //
       this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
       this.BackColor = System.Drawing.Color.Black;
@@ -47,20 +62,27 @@ namespace FamilyPicScreenSaver
       this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
       this.Name = "ScreenSaverForm";
       this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
+      this.Controls.Add(this._videoView1);
+      this.Controls.Add(this._pictureBox1);
       this.Text = "Form1";
       this.Load += new System.EventHandler(this.ScreenSaverForm_Load);
-      this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.ScreenSaverForm_KeyPress);
-      this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.ScreenSaverForm_KeyDown);
-      this.MouseClick += new System.Windows.Forms.MouseEventHandler(this.ScreenSaverForm_MouseClick);
-      this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.ScreenSaverForm_MouseMove);
+      this.FormClosed += this.ScreenSaverForm_FormClosed;
+      this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.ScreenSaverForm_KeyUp);
+
+      // Set KeyPreview object to true to allow the form to process 
+      // keystrokes before the control with focus processes it.
+      this.KeyPreview = true;
+        
+      ((System.ComponentModel.ISupportInitialize)(this._videoView1)).EndInit();
       this.ResumeLayout(false);
       this.PerformLayout();
 
     }
 
-    #endregion
-
-    private System.Windows.Forms.Timer changePictureTimer;
+    private System.Windows.Forms.Timer _changePictureTimer;
+    private System.Windows.Forms.PictureBox _pictureBox1;
+    private VideoView _videoView1;
+    private LibVLC _libVLC;
+    private MediaPlayer _mp;
   }
 }
-

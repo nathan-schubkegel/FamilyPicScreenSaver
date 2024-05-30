@@ -15,6 +15,10 @@ using System.Text;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using LibVLCSharp.WinForms;
+using LibVLCSharp;
+using LibVLCSharp.Shared;
+
 
 namespace FamilyPicScreenSaver
 {
@@ -31,9 +35,21 @@ namespace FamilyPicScreenSaver
 
     [DllImport("user32.dll")]
     static extern bool GetClientRect(IntPtr hWnd, out Rectangle lpRect);
+    
+    [DllImport("user32.dll")]
+    static extern bool GetCursorPos(ref Point lpPoint);
+    
+    private static Point GetMouseLocation()
+    {
+      var point = new Point();
+      GetCursorPos(ref point);
+      return point;
+    }   
 
+    System.Diagnostics.Stopwatch _pictureStopwatch = System.Diagnostics.Stopwatch.StartNew();
     private Point _mouseLocation;
     private bool _previewMode = false;
+    private bool _forceNext = false;
     private Random _random = new Random();
 
     private static List<string> _pictureFilePaths = new List<string>();
@@ -63,38 +79,44 @@ namespace FamilyPicScreenSaver
           }
           if (file.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
               file.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
-              file.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase))
+              file.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase) ||
+              FilePathIsProbablyVideo(file))
           {
             lock (_pictureFilePaths) _pictureFilePaths.Add(file);
           }
         }
       });
     }
+    
+    private static bool FilePathIsProbablyVideo(string file)
+    {
+      return  file.EndsWith(".avi", StringComparison.OrdinalIgnoreCase) ||
+              file.EndsWith(".mpg", StringComparison.OrdinalIgnoreCase) ||
+              file.EndsWith(".mkv", StringComparison.OrdinalIgnoreCase) ||
+              file.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase);
+    }
 
     public ScreenSaverForm()
-    {
+    { 
       InitializeComponent();
     }
 
-    public ScreenSaverForm(Rectangle Bounds)
+    public ScreenSaverForm(Rectangle bounds) : this()
     {
-      InitializeComponent();
-      this.Bounds = Bounds;
+      this.Bounds = bounds;
     }
 
-    public ScreenSaverForm(IntPtr PreviewWndHandle)
+    public ScreenSaverForm(IntPtr previewWndHandle) : this()
     {
-      InitializeComponent();
-
       // Set the preview window as the parent of this window
-      SetParent(this.Handle, PreviewWndHandle);
+      SetParent(this.Handle, previewWndHandle);
 
       // Make this a child window so it will close when the parent dialog closes
       SetWindowLong(this.Handle, -16, new IntPtr(GetWindowLong(this.Handle, -16) | 0x40000000));
 
       // Place our window inside the parent
       Rectangle ParentRect;
-      GetClientRect(PreviewWndHandle, out ParentRect);
+      GetClientRect(previewWndHandle, out ParentRect);
       Size = ParentRect.Size;
       Location = new Point(0, 0);
 
@@ -107,13 +129,48 @@ namespace FamilyPicScreenSaver
       TopMost = true;
       try { this.Focus(); } catch { }
 
-      changePictureTimer.Interval = 10000;
-      changePictureTimer.Tick += new EventHandler(changePictureTimer_Tick);
-      changePictureTimer.Start();
+      _mouseLocation = GetMouseLocation();
+      _changePictureTimer.Interval = 100;
+      _changePictureTimer.Tick += new EventHandler(changePictureTimer_Tick);
+      _changePictureTimer.Start();
     }
     
+    private void ScreenSaverForm_FormClosed(object sender, FormClosedEventArgs e)
+    {
+      _mp.Stop();
+      _mp.Dispose();
+      _libVLC.Dispose();
+    }
+
     private void changePictureTimer_Tick(object sender, System.EventArgs e)
     {
+      if (!_previewMode)
+      {
+        QuitIfMouseMoved();
+      }
+      
+      // decide whether to keep letting the currently-displayed thing be displayed
+      if (!_forceNext)
+      {
+        if (_videoView1.Visible) // a video is showing
+        {
+          if (_mp.IsPlaying)
+          {
+            return;
+          }
+          // else done playing, so load something else
+        }
+        else if (_image != null) // a picture is showing
+        {
+          if (_pictureStopwatch.ElapsedMilliseconds < 10000)
+          {
+            return;
+          }
+          // else that image has displayed long enough, so load something else
+        }
+      }
+      _forceNext = false;
+
       string myPictureFilePath;
       lock (_pictureFilePaths)
       {
@@ -130,137 +187,79 @@ namespace FamilyPicScreenSaver
 
       try
       {
-        var imageBytes = File.ReadAllBytes(myPictureFilePath);
-        _image?.Dispose();
-        using var imageStream = new MemoryStream(imageBytes);
-        _image = Image.FromStream(imageStream);
+        if (FilePathIsProbablyVideo(myPictureFilePath))
+        {
+          _videoView1.Visible = true;
+          using var media = new Media(_libVLC, new Uri(myPictureFilePath)); //new Uri("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"));
+          if (!_mp.Play(media)) // Returns true if the playback will start successfully
+          {
+            throw new Exception("womp");
+          }
+        
+          _pictureBox1.Visible = false;
+          _pictureBox1.Image = null;
+          _image?.Dispose();
+          _image = null;
+        }
+        else
+        {
+          _pictureBox1.Image = null;
+          _pictureBox1.Visible = true;
+          _mp.Stop();
+          _videoView1.Visible = false;
+          _image?.Dispose();
+          _image = Image.FromFile(myPictureFilePath);
+          _pictureBox1.Image = _image;
+          _pictureStopwatch.Restart();
+        }
       }
       catch
       {
+        _pictureBox1.Image = null;
+        _pictureBox1.Visible = true;
+        _mp.Stop();
+        _videoView1.Visible = false;
         _image?.Dispose();
         _image = Image.FromFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "broken.jpg"));
+        _pictureBox1.Image = _image;
+        _pictureStopwatch.Restart();
       }
-      Invalidate(); // so it repaints
     }
 
-    private void ScreenSaverForm_MouseMove(object sender, MouseEventArgs e)
+    private void QuitIfMouseMoved()
     {
-      if (!_previewMode)
-      {
-        if (!_mouseLocation.IsEmpty)
-        {
-          // Terminate if mouse is moved a significant distance
-          if (Math.Abs(_mouseLocation.X - e.X) > 5 ||
-              Math.Abs(_mouseLocation.Y - e.Y) > 5)
-          {
-            Application.Exit();
-          }
-        }
+      var e = GetMouseLocation();
 
-        // Update current mouse location
-        _mouseLocation = e.Location;
+      // better hope you don't have a super high res mouse...
+      if (Math.Abs(_mouseLocation.X - e.X) >= 3 ||
+          Math.Abs(_mouseLocation.Y - e.Y) >= 3)
+      {
+        Environment.Exit(0);
       }
+
+      _mouseLocation = e;
     }
 
     private void ScreenSaverForm_KeyPress(object sender, KeyPressEventArgs e)
     {
       if (!_previewMode)
       {
-        Application.Exit();
+        Environment.Exit(0);
       }
     }
     
-    private void ScreenSaverForm_KeyDown(object sender, KeyEventArgs e)
+    private void ScreenSaverForm_KeyUp(object sender, KeyEventArgs e)
     {
-      /*
-      if (e.KeyCode == Keys.Up || e.KeyCode == Keys.Down || e.KeyCode == Keys.Left || e.KeyCode == Keys.Right)
+      //if (e.KeyCode == Keys.Up || e.KeyCode == Keys.Down || e.KeyCode == Keys.Left || e.KeyCode == Keys.Right)
+      if (e.KeyCode == Keys.Right)
       {
-          // Display a pop-up Help topic to assist the user.
-          Help.ShowPopup(textBox1, "Enter your name.", new Point(textBox1.Bottom, textBox1.Right));
+        _forceNext = true;
+        changePictureTimer_Tick(null, null);
       }
-      */
-      if (!_previewMode)
+      else if (!_previewMode)
       {
-        Application.Exit();
+        Environment.Exit(0);
       }
-    }
-
-    private void ScreenSaverForm_MouseClick(object sender, MouseEventArgs e)
-    {
-      if (!_previewMode)
-      {
-        Application.Exit();
-      }
-    }
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-       // If there is an _image and it has a location, 
-       // paint it when the Form is repainted.
-       base.OnPaint(e);
-       if (_image == null)
-       {
-         changePictureTimer_Tick(null,null); // this should get _image populated
-       }
-       
-       double ws = ClientRectangle.Width;
-       double hs = ClientRectangle.Height;
-       double wp = _image.Size.Width;
-       double hp = _image.Size.Height;
-       double rs = ws / hs;
-       double rp = wp / hp;
-       if (rs > rp)
-       {
-         // then sync on height and letterboxes on sides
-         double s = hs / hp;
-         double x = s * wp;
-         double j = (ws - x) / 2;
-         e.Graphics.DrawImage(_image, new Rectangle((int)j, 0, (int)(ws - 2 * j), (int)hs), 0, 0, (int)wp, (int)hp, GraphicsUnit.Pixel);
-       }
-       else
-       {
-         // then sync on width and letterboxes on top/bottom
-         double s = ws / wp;
-         double x = s * hp;
-         //double j = hs - x / 2;
-         double j = (hs - x) / 2;
-         e.Graphics.DrawImage(_image, new Rectangle(0, (int)j, (int)ws, (int)(hs - 2 * j)), 0, 0, (int)wp, (int)hp, GraphicsUnit.Pixel);
-       }
-       /*
-       float _imageRatio = _image.Size.Width / _image.Size.Height;
-       float clientRatio = ClientRectangle.Width / ClientRectangle.Height;
-
-       //if (true)
-       //{
-       //  var r = ClientRectangle;
-       //  r.X = 100;
-       //  r.Y = 20;
-       //  r.Height = r.Height / 2;
-      //   r.Width = r.Width / 2;
-       //  e.Graphics.DrawImage(_image, r, 0, 0, _image.Size.Width, _image.Size.Height, GraphicsUnit.Pixel);
-       //}
-       //else 
-         if (_imageRatio == clientRatio)
-       {
-         e.Graphics.DrawImage(_image, ClientRectangle, 0, 0, _image.Size.Width, _image.Size.Height, GraphicsUnit.Pixel);
-       }
-       else if (_imageRatio > clientRatio)
-       {
-         // TODO: _image is relatively wider than screen, so find out how much height needs to be reduced
-         var clientHeight = (int)((double)ClientRectangle.Width * (double)_image.Size.Height / (double)_image.Size.Width);
-         var r = ClientRectangle;
-         r.Height = clientHeight;
-         e.Graphics.DrawImage(_image, r, 0, 0, _image.Size.Width, _image.Size.Height, GraphicsUnit.Pixel);
-       }
-       else
-       {
-         // TODO: _image is relatively taller than screen, so find out how much width needs to be reduced
-         var clientWidth = (int)((double)ClientRectangle.Height * (double)_image.Size.Width / (double)_image.Size.Height);
-         var r = ClientRectangle;
-         r.Width = clientWidth;
-         e.Graphics.DrawImage(_image, r, 0, 0, _image.Size.Width, _image.Size.Height, GraphicsUnit.Pixel);
-       }
-       */
     }
   }
 }
