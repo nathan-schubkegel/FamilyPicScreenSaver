@@ -6,19 +6,13 @@ Please refer to <http://unlicense.org/>
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Windows.Forms;
+using System.IO;
 using System.Runtime.InteropServices;
-using Microsoft.Win32;
-using LibVLCSharp.WinForms;
-using LibVLCSharp;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 using LibVLCSharp.Shared;
-
+using System.Diagnostics;
 
 namespace FamilyPicScreenSaver
 {
@@ -44,19 +38,21 @@ namespace FamilyPicScreenSaver
       var point = new Point();
       GetCursorPos(ref point);
       return point;
-    }   
+    }
 
-    System.Diagnostics.Stopwatch _pictureStopwatch = System.Diagnostics.Stopwatch.StartNew();
+    private static LibVLC _libVLC;
+    private static List<string> _pictureFilePaths = new List<string>();
+
+    private Random _random = new Random();
+    private MediaPlayerThreadedWrapper _mp;
+    private Stopwatch _pictureStopwatch = Stopwatch.StartNew();
     private Point _mouseLocation;
     private bool _previewMode = false;
-    private bool _forceNext = false;
-    private Random _random = new Random();
-
-    private static List<string> _pictureFilePaths = new List<string>();
-    private Image _image;
+    private bool _forceNext = true;
 
     static ScreenSaverForm()
     {
+      _libVLC = new LibVLC();
       RelearnPictures();
     }
     
@@ -69,20 +65,56 @@ namespace FamilyPicScreenSaver
         {
           _pictureFilePaths.Clear();
         }
-        string myPictureFolder = Settings.PictureFolder;
-        var files = System.IO.Directory.EnumerateFiles(myPictureFolder, "*", SearchOption.AllDirectories);
-        foreach (var file in files)
+        string rootPictureFolder = Settings.PictureFolder;
+
+        // NOTE: doing this the hard way (rather than using SearchOption.AllDirectories)
+        // because when it encounters a folder it doesn't have access to, I want it to keep chugging
+        Stack<string> pictureFoldersToSearch = new();
+        pictureFoldersToSearch.Push(rootPictureFolder);
+        while (pictureFoldersToSearch.Count > 0)
         {
-          if (Settings.PictureFolder != myPictureFolder)
+          var myPictureFolder = pictureFoldersToSearch.Pop();
+          try
           {
-            return;
+            var files = System.IO.Directory.EnumerateFiles(myPictureFolder, "*");
+            foreach (var file in files)
+            {
+              // stop when setting changes
+              if (Settings.PictureFolder != rootPictureFolder)
+              {
+                return;
+              }
+
+              if (file.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                  file.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                  file.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase) ||
+                  FilePathIsProbablyVideo(file))
+              {
+                lock (_pictureFilePaths) _pictureFilePaths.Add(file);
+              }
+            }
           }
-          if (file.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
-              file.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
-              file.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase) ||
-              FilePathIsProbablyVideo(file))
+          catch // usually it's something like "don't have access to the directory"
           {
-            lock (_pictureFilePaths) _pictureFilePaths.Add(file);
+            // ok whatever
+          }
+
+          try
+          {
+            var dirs = System.IO.Directory.EnumerateDirectories(myPictureFolder, "*");
+            foreach (var dir in dirs)
+            {
+              // stop when setting changes
+              if (Settings.PictureFolder != rootPictureFolder)
+              {
+                return;
+              }
+              pictureFoldersToSearch.Push(dir);
+            }
+          }
+          catch // usually it's something like "don't have access to the directory"
+          {
+            // ok whatever
           }
         }
       });
@@ -97,7 +129,8 @@ namespace FamilyPicScreenSaver
     }
 
     public ScreenSaverForm()
-    { 
+    {
+      _mp = new MediaPlayerThreadedWrapper(_libVLC, new MediaPlayer(_libVLC));
       InitializeComponent();
     }
 
@@ -125,34 +158,42 @@ namespace FamilyPicScreenSaver
 
     private void ScreenSaverForm_Load(object sender, EventArgs e)
     {
-      Cursor.Hide();
-      TopMost = true;
+      _videoView1.MediaPlayer = _mp.MediaPlayer;
+
+      if (!Debugger.IsAttached)
+      {
+        Cursor.Hide();
+        TopMost = true;
+      }
+
       try { this.Focus(); } catch { }
 
       _mouseLocation = GetMouseLocation();
       _changePictureTimer.Interval = 100;
       _changePictureTimer.Tick += new EventHandler(changePictureTimer_Tick);
       _changePictureTimer.Start();
+      changePictureTimer_Tick(null, null);
     }
     
     private void ScreenSaverForm_FormClosed(object sender, FormClosedEventArgs e)
     {
-      _mp.Stop();
-      _mp.Dispose();
-      _libVLC.Dispose();
+      // there's no guarantee this event isn't being fired from a LibLVC event
+      // https://github.com/videolan/libvlcsharp/blob/3.8.5/docs/best_practices.md#do-not-call-libvlc-from-a-libvlc-event-without-switching-thread-first
+      // so avoid the risk of hanging this thread by just hard-killing the application on form close
+      Environment.Exit(0);
     }
 
-    private void changePictureTimer_Tick(object sender, System.EventArgs e)
+    private void changePictureTimer_Tick(object sender, EventArgs e)
     {
       if (!_previewMode)
       {
         QuitIfMouseMoved();
       }
-      
+
       // decide whether to keep letting the currently-displayed thing be displayed
       if (!_forceNext)
       {
-        if (_videoView1.Visible) // a video is showing
+        if (_videoView1.Visible)
         {
           if (_mp.IsPlaying)
           {
@@ -160,7 +201,7 @@ namespace FamilyPicScreenSaver
           }
           // else done playing, so load something else
         }
-        else if (_image != null) // a picture is showing
+        else // I last set it up to show a picture, or nothing has been shown yet
         {
           if (_pictureStopwatch.ElapsedMilliseconds < 10000)
           {
@@ -177,6 +218,7 @@ namespace FamilyPicScreenSaver
         if (_pictureFilePaths.Count == 0)
         {
           myPictureFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "loading.jpg");
+          _pictureStopwatch.Reset(); // so it stays alive as long as needed
         }
         else
         {
@@ -189,40 +231,26 @@ namespace FamilyPicScreenSaver
       {
         if (FilePathIsProbablyVideo(myPictureFilePath))
         {
-          _videoView1.Visible = true;
-          using var media = new Media(_libVLC, new Uri(myPictureFilePath)); //new Uri("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"));
-          if (!_mp.Play(media)) // Returns true if the playback will start successfully
-          {
-            throw new Exception("womp");
-          }
-        
           _pictureBox1.Visible = false;
-          _pictureBox1.Image = null;
-          _image?.Dispose();
-          _image = null;
+          _videoView1.Visible = true;
+          _mp.Play(myPictureFilePath);
         }
         else
         {
-          _pictureBox1.Image = null;
-          _pictureBox1.Visible = true;
-          _mp.Stop();
           _videoView1.Visible = false;
-          _image?.Dispose();
-          _image = Image.FromFile(myPictureFilePath);
-          _pictureBox1.Image = _image;
+          _mp.Stop();
+          using var oldImage = _pictureBox1.Image;
+          _pictureBox1.Image = null;
+          _pictureBox1.Image = Image.FromFile(myPictureFilePath);
+          _pictureBox1.Visible = true;
           _pictureStopwatch.Restart();
         }
       }
       catch
       {
-        _pictureBox1.Image = null;
-        _pictureBox1.Visible = true;
-        _mp.Stop();
+        _pictureBox1.Visible = false;
         _videoView1.Visible = false;
-        _image?.Dispose();
-        _image = Image.FromFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "broken.jpg"));
-        _pictureBox1.Image = _image;
-        _pictureStopwatch.Restart();
+        _mp.Stop();
       }
     }
 
@@ -234,6 +262,9 @@ namespace FamilyPicScreenSaver
       if (Math.Abs(_mouseLocation.X - e.X) >= 3 ||
           Math.Abs(_mouseLocation.Y - e.Y) >= 3)
       {
+        // there's no guarantee this event isn't being fired from a LibLVC event
+        // https://github.com/videolan/libvlcsharp/blob/3.8.5/docs/best_practices.md#do-not-call-libvlc-from-a-libvlc-event-without-switching-thread-first
+        // so avoid the risk of hanging this thread by just hard-killing the application on form close
         Environment.Exit(0);
       }
 
@@ -244,10 +275,18 @@ namespace FamilyPicScreenSaver
     {
       if (!_previewMode)
       {
+        // there's no guarantee this event isn't being fired from a LibLVC event
+        // https://github.com/videolan/libvlcsharp/blob/3.8.5/docs/best_practices.md#do-not-call-libvlc-from-a-libvlc-event-without-switching-thread-first
+        // so avoid the risk of hanging this thread by just hard-killing the application on form close
         Environment.Exit(0);
       }
     }
     
+    // NOTE: we're subscribing to KeyUp rather than KeyDown
+    // because many controls consume KeyDown of arrow keys (and a few other input keys)
+    // without forwarding them to the parent control to respect how this form has KeyPreview = true.
+    // (And we're depending on KeyPreview because key events in the native window
+    //  otherwise go into a black hole)
     private void ScreenSaverForm_KeyUp(object sender, KeyEventArgs e)
     {
       //if (e.KeyCode == Keys.Up || e.KeyCode == Keys.Down || e.KeyCode == Keys.Left || e.KeyCode == Keys.Right)
@@ -258,6 +297,9 @@ namespace FamilyPicScreenSaver
       }
       else if (!_previewMode)
       {
+        // there's no guarantee this event isn't being fired from a LibLVC event
+        // https://github.com/videolan/libvlcsharp/blob/3.8.5/docs/best_practices.md#do-not-call-libvlc-from-a-libvlc-event-without-switching-thread-first
+        // so avoid the risk of hanging this thread by just hard-killing the application on form close
         Environment.Exit(0);
       }
     }

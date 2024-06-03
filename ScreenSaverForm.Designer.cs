@@ -4,10 +4,6 @@ You have complete freedom to do anything you want with the software, for any pur
 Please refer to <http://unlicense.org/>
 */
 
-using LibVLCSharp.WinForms;
-using LibVLCSharp;
-using LibVLCSharp.Shared;
-
 namespace FamilyPicScreenSaver
 {
   partial class ScreenSaverForm
@@ -25,9 +21,6 @@ namespace FamilyPicScreenSaver
 
     private void InitializeComponent()
     {
-      _libVLC = new LibVLC();
-      _mp = new MediaPlayer(_libVLC);
-
       this.components = new System.ComponentModel.Container();
       this._videoView1 = new LibVLCSharp.WinForms.VideoView();
       this._pictureBox1 = new System.Windows.Forms.PictureBox();
@@ -40,9 +33,9 @@ namespace FamilyPicScreenSaver
       this._videoView1.BackColor = System.Drawing.Color.Black;
       this._videoView1.Dock = System.Windows.Forms.DockStyle.Fill;
       this._videoView1.Location = new System.Drawing.Point(0, 0);
-      this._videoView1.MediaPlayer = _mp;
       this._videoView1.Name = "_videoView1";
       this._videoView1.TabIndex = 0;
+      this._videoView1.Visible = false;
       //
       // _pictureBox1
       //
@@ -51,7 +44,8 @@ namespace FamilyPicScreenSaver
       this._pictureBox1.Location = new System.Drawing.Point(0, 0);
       this._pictureBox1.Name = "_pictureBox1";
       this._pictureBox1.TabIndex = 0;
-      this._pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
+      this._pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+      this._pictureBox1.Visible = false;
       //
       // ScreenSaverForm
       //
@@ -61,6 +55,7 @@ namespace FamilyPicScreenSaver
       this.ClientSize = new System.Drawing.Size(508, 260);
       this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
       this.Name = "ScreenSaverForm";
+      this.KeyPreview = true;
       this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
       this.Controls.Add(this._videoView1);
       this.Controls.Add(this._pictureBox1);
@@ -68,21 +63,13 @@ namespace FamilyPicScreenSaver
       this.Load += new System.EventHandler(this.ScreenSaverForm_Load);
       this.FormClosed += this.ScreenSaverForm_FormClosed;
       this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.ScreenSaverForm_KeyUp);
-
-      // Set KeyPreview object to true to allow the form to process 
-      // keystrokes before the control with focus processes it.
-      this.KeyPreview = true;
-        
       ((System.ComponentModel.ISupportInitialize)(this._videoView1)).EndInit();
       this.ResumeLayout(false);
       this.PerformLayout();
-
     }
 
     private System.Windows.Forms.Timer _changePictureTimer;
     private System.Windows.Forms.PictureBox _pictureBox1;
-    private VideoView _videoView1;
-    private LibVLC _libVLC;
-    private MediaPlayer _mp;
+    private LibVLCSharp.WinForms.VideoView _videoView1;
   }
 }
