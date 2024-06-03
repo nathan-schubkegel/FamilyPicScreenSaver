@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FamilyPicScreenSaver": {
+      "commandName": "Project",
+      "commandLineArgs": "/s"
+    }
+  }
+}
