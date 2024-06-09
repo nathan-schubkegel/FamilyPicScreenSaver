@@ -127,6 +127,7 @@ namespace FamilyPicScreenSaver
       return  file.EndsWith(".avi", StringComparison.OrdinalIgnoreCase) ||
               file.EndsWith(".mpg", StringComparison.OrdinalIgnoreCase) ||
               file.EndsWith(".mkv", StringComparison.OrdinalIgnoreCase) ||
+              file.EndsWith(".webm", StringComparison.OrdinalIgnoreCase) ||
               file.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase);
     }
 
@@ -225,9 +226,9 @@ namespace FamilyPicScreenSaver
         else
         {
           var nextIndex = _random.Next(0, _pictureFilePaths.Count);
-          while (nextIndex == _lastIndex && _pictureFilePaths.Count > 1)
+          if (nextIndex == _lastIndex)
           {
-            nextIndex = _random.Next(0, _pictureFilePaths.Count);
+            nextIndex = (nextIndex + 1) % _pictureFilePaths.Count;
           }
           myPictureFilePath = _pictureFilePaths[nextIndex];
           _lastIndex = nextIndex;
@@ -309,6 +310,10 @@ namespace FamilyPicScreenSaver
       {
         _forceNext = true;
         changePictureTimer_Tick(null, null);
+      }
+      else if (e.KeyCode == Keys.M)
+      {
+        _mp.Muted = !_mp.Muted;
       }
       else if (!_previewMode && !Debugger.IsAttached)
       {

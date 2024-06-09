@@ -30,6 +30,7 @@ namespace FamilyPicScreenSaver
       _mediaPlayer = mediaPlayer;
       _mediaPlayer.Playing += MediaPlayer_Playing;
       _mediaPlayer.Stopped += MediaPlayer_Stopped;
+      Muted = true; // start muted
     }
 
     private void MediaPlayer_Stopped(object sender, EventArgs e)
@@ -87,5 +88,22 @@ namespace FamilyPicScreenSaver
         }
       });
     }
+
+    public bool Muted
+    {
+      get => _isMuted;
+      set
+      {
+        _isMuted = value;
+        Task.Run(() =>
+        {
+          lock (_mediaPlayer)
+          {
+            _mediaPlayer.Volume = _isMuted ? 0 : 100;
+          }
+        });
+      }
+    }
+    private volatile bool _isMuted;
   }
 }
