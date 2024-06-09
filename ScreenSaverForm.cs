@@ -223,7 +223,12 @@ namespace FamilyPicScreenSaver
         else
         {
           var nextIndex = _random.Next(0, _pictureFilePaths.Count);
+          while (nextIndex == _lastIndex && _pictureFilePaths.Count > 1)
+          {
+            nextIndex = _random.Next(0, _pictureFilePaths.Count);
+          }
           myPictureFilePath = _pictureFilePaths[nextIndex];
+          _lastIndex = nextIndex;
         }
       }
 
