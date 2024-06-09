@@ -1,38 +1,24 @@
-﻿using LibVLCSharp.Shared;
+﻿/*
+This is free and unencumbered software released into the public domain under The Unlicense.
+You have complete freedom to do anything you want with the software, for any purpose.
+Please refer to <http://unlicense.org/>
+*/
+
+using LibVLCSharp.Shared;
+using LibVLCSharp.WinForms;
 using System;
-using System.Collections.Concurrent;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace FamilyPicScreenSaver
 {
   public class MediaPlayerThreadedWrapper
   {
-    private interface ICommand
-    {
-    }
-
-    public class PlayCommand : ICommand
-    {
-      public string FilePath;
-    }
-
-    public class StopCommand : ICommand
-    {
-
-    }
-
     private readonly LibVLC _libVLC;
     private readonly MediaPlayer _mediaPlayer;
-    private ConcurrentQueue<ICommand> _commandQueue = new();
-    private Task _loop;
-    private int _countOfToldToPlay; // outsiders increment and read this, Loop() method decrements it
-    private volatile bool _isPlaying; // outsiders read this, Loop() assigns it
+    private volatile bool _isPlaying;
+    private volatile bool _isTweeningPlaying;
 
-    // needed so it can be assocaited with the VideoView control
-    public MediaPlayer MediaPlayer => _mediaPlayer;
-
-    public bool IsPlaying => _isPlaying || Interlocked.CompareExchange(ref _countOfToldToPlay, 0, 0) > 0;
+    public bool IsPlaying => _isTweeningPlaying || _isPlaying;
 
     public MediaPlayerThreadedWrapper(LibVLC libVLC, MediaPlayer mediaPlayer)
     {
@@ -42,83 +28,64 @@ namespace FamilyPicScreenSaver
       // so this wrapper class only uses the media player from background threads
       _libVLC = libVLC;
       _mediaPlayer = mediaPlayer;
+      _mediaPlayer.Playing += MediaPlayer_Playing;
+      _mediaPlayer.Stopped += MediaPlayer_Stopped;
+    }
+
+    private void MediaPlayer_Stopped(object sender, EventArgs e)
+    {
+      _isPlaying = false;
+      _isTweeningPlaying = false;
+    }
+
+    private void MediaPlayer_Playing(object sender, EventArgs e)
+    {
+      _isPlaying = true;
+    }
+
+    public void AssociateWithControl(VideoView videoView)
+    {
+      videoView.MediaPlayer = _mediaPlayer;
     }
 
     public void Play(string filePath)
     {
-      if (_loop == null)
+      _isTweeningPlaying = true;
+      Task.Run(() =>
       {
-        _loop = Task.Run(Loop);
-      }
-
-      Interlocked.Increment(ref _countOfToldToPlay);
-      _commandQueue.Enqueue(new PlayCommand { FilePath = filePath });
+        try
+        {
+          lock (_mediaPlayer)
+          {
+            using var media = new Media(_libVLC, new Uri(filePath));
+            _mediaPlayer.Play(media);
+            // NOTE: this returns false when it attempts to play a bogus file
+            // but I observe the Playing and Stopped events still fire in that scenario (great!)
+          }
+        }
+        catch
+        {
+          _isTweeningPlaying = false;
+        }
+      });
     }
 
     public void Stop()
     {
-      if (_loop == null)
+      Task.Run(() =>
       {
-        _loop = Task.Run(Loop);
-      }
-
-      _commandQueue.Enqueue(new StopCommand());
-    }
-
-    private void Loop()
-    {
-      while (true)
-      {
-        if (_commandQueue.TryDequeue(out var command))
-        {
-          switch (command)
-          {
-            case PlayCommand playCommand:
-              try
-              {
-                using var media = new Media(_libVLC, new Uri(playCommand.FilePath));
-                _mediaPlayer.Play(media);
-
-                // gotta have this here earlier than decrement _countOfToldToPlay
-                // or the public 'IsPlaying' property will be a lie sometimes
-                _isPlaying = _mediaPlayer.IsPlaying;
-              }
-              catch
-              {
-                // oh well
-              }
-              finally
-              {
-                Interlocked.Decrement(ref _countOfToldToPlay);
-              }
-              break;
-
-            case StopCommand:
-              try
-              {
-                _mediaPlayer.Stop();
-              }
-              catch
-              {
-                // oh well
-              }
-              break;
-          }
-        }
-        else
-        {
-          Thread.Sleep(100);
-        }
-
         try
         {
-          _isPlaying = _mediaPlayer.IsPlaying;
+          lock (_mediaPlayer)
+          {
+            _mediaPlayer.Stop();
+          }
         }
         catch
         {
-          // oh well
+          _isPlaying = false;
         }
-      }
+      });
     }
   }
 }

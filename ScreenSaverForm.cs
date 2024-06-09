@@ -50,6 +50,7 @@ namespace FamilyPicScreenSaver
     private Point _mouseLocation;
     private bool _previewMode = false;
     private bool _forceNext = true;
+    private int _lastIndex = -1;
 
     static ScreenSaverForm()
     {
@@ -159,7 +160,7 @@ namespace FamilyPicScreenSaver
 
     private void ScreenSaverForm_Load(object sender, EventArgs e)
     {
-      _videoView1.MediaPlayer = _mp.MediaPlayer;
+      _mp.AssociateWithControl(_videoView1);
 
       if (!Debugger.IsAttached)
       {
