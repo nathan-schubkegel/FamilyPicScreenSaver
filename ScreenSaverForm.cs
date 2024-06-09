@@ -42,6 +42,7 @@ namespace FamilyPicScreenSaver
 
     private static LibVLC _libVLC;
     private static List<string> _pictureFilePaths = new List<string>();
+    private static byte[] _brokenImageBytes = File.ReadAllBytes(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "broken.jpg"));
 
     private Random _random = new Random();
     private MediaPlayerThreadedWrapper _mp;
@@ -253,9 +254,14 @@ namespace FamilyPicScreenSaver
       }
       catch
       {
-        _pictureBox1.Visible = false;
         _videoView1.Visible = false;
         _mp.Stop();
+        using var oldImage = _pictureBox1.Image;
+        _pictureBox1.Image = null;
+        using var memoryStream = new MemoryStream(_brokenImageBytes);
+        _pictureBox1.Image = Image.FromStream(memoryStream);
+        _pictureBox1.Visible = true;
+        _pictureStopwatch.Restart();
       }
     }
 
@@ -267,10 +273,13 @@ namespace FamilyPicScreenSaver
       if (Math.Abs(_mouseLocation.X - e.X) >= 3 ||
           Math.Abs(_mouseLocation.Y - e.Y) >= 3)
       {
-        // there's no guarantee this event isn't being fired from a LibLVC event
-        // https://github.com/videolan/libvlcsharp/blob/3.8.5/docs/best_practices.md#do-not-call-libvlc-from-a-libvlc-event-without-switching-thread-first
-        // so avoid the risk of hanging this thread by just hard-killing the application on form close
-        Environment.Exit(0);
+        if (!Debugger.IsAttached)
+        {
+          // there's no guarantee this event isn't being fired from a LibLVC event
+          // https://github.com/videolan/libvlcsharp/blob/3.8.5/docs/best_practices.md#do-not-call-libvlc-from-a-libvlc-event-without-switching-thread-first
+          // so avoid the risk of hanging this thread by just hard-killing the application on form close
+          Environment.Exit(0);
+        }
       }
 
       _mouseLocation = e;
@@ -278,7 +287,7 @@ namespace FamilyPicScreenSaver
 
     private void ScreenSaverForm_KeyPress(object sender, KeyPressEventArgs e)
     {
-      if (!_previewMode)
+      if (!_previewMode && !Debugger.IsAttached)
       {
         // there's no guarantee this event isn't being fired from a LibLVC event
         // https://github.com/videolan/libvlcsharp/blob/3.8.5/docs/best_practices.md#do-not-call-libvlc-from-a-libvlc-event-without-switching-thread-first
@@ -300,7 +309,7 @@ namespace FamilyPicScreenSaver
         _forceNext = true;
         changePictureTimer_Tick(null, null);
       }
-      else if (!_previewMode)
+      else if (!_previewMode && !Debugger.IsAttached)
       {
         // there's no guarantee this event isn't being fired from a LibLVC event
         // https://github.com/videolan/libvlcsharp/blob/3.8.5/docs/best_practices.md#do-not-call-libvlc-from-a-libvlc-event-without-switching-thread-first
