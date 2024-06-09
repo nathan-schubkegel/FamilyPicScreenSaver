@@ -27,5 +27,23 @@ namespace FamilyPicScreenSaver
     {
       Close();
     }
+
+    private void browseButton_Click(object sender, EventArgs e)
+    {
+      using var dialog = new FolderBrowserDialog();
+      try
+      {
+        dialog.SelectedPath = _textBox.Text;
+      }
+      catch
+      {
+        // oh well
+      }
+      var result = dialog.ShowDialog(this);
+      if (result == DialogResult.OK)
+      {
+        _textBox.Text = dialog.SelectedPath;
+      }
+    }
   }
 }

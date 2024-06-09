@@ -5,7 +5,6 @@ Please refer to <http://unlicense.org/>
 */
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
 using System.Globalization;
@@ -14,6 +13,7 @@ namespace FamilyPicScreenSaver
 {
   static class Program
   {
+    [STAThread]
     static void Main(string[] args)
     {
       try

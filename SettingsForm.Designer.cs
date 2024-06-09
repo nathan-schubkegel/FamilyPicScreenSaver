@@ -21,90 +21,111 @@ namespace FamilyPicScreenSaver
 
     private void InitializeComponent()
     {
-      this._textBox = new System.Windows.Forms.TextBox();
-      this._label1 = new System.Windows.Forms.Label();
-      this._label2 = new System.Windows.Forms.Label();
-      this._label3 = new System.Windows.Forms.Label();
-      this._okButton = new System.Windows.Forms.Button();
-      this._cancelButton = new System.Windows.Forms.Button();
-      this.SuspendLayout();
+      _textBox = new System.Windows.Forms.TextBox();
+      _label1 = new System.Windows.Forms.Label();
+      _label2 = new System.Windows.Forms.Label();
+      _label3 = new System.Windows.Forms.Label();
+      _okButton = new System.Windows.Forms.Button();
+      _cancelButton = new System.Windows.Forms.Button();
+      _browseButton = new System.Windows.Forms.Button();
+      SuspendLayout();
       // 
       // _textBox
       // 
-      this._textBox.Location = new System.Drawing.Point(20, 113);
-      this._textBox.Name = "_textBox";
-      this._textBox.Size = new System.Drawing.Size(190, 20);
-      this._textBox.TabIndex = 0;
+      _textBox.Location = new System.Drawing.Point(13, 86);
+      _textBox.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+      _textBox.Name = "_textBox";
+      _textBox.Size = new System.Drawing.Size(496, 23);
+      _textBox.TabIndex = 0;
       // 
       // _label1
       // 
-      this._label1.AutoSize = true;
-      this._label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this._label1.ForeColor = System.Drawing.Color.Black;
-      this._label1.Location = new System.Drawing.Point(15, 13);
-      this._label1.Name = "_label1";
-      this._label1.Size = new System.Drawing.Size(198, 25);
-      this._label1.TabIndex = 1;
-      this._label1.Text = "Family Pics Screen Saver";
+      _label1.AutoSize = true;
+      _label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+      _label1.ForeColor = System.Drawing.Color.Black;
+      _label1.Location = new System.Drawing.Point(13, 9);
+      _label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+      _label1.Name = "_label1";
+      _label1.Size = new System.Drawing.Size(258, 25);
+      _label1.TabIndex = 1;
+      _label1.Text = "Family Pics Screen Saver";
       // 
       // _label2
       // 
-      this._label2.AutoSize = true;
-      this._label2.Location = new System.Drawing.Point(21, 47);
-      this._label2.Name = "_label2";
-      this._label2.Size = new System.Drawing.Size(189, 13);
-      this._label2.TabIndex = 2;
-      this._label2.Text = "By Daddy Schubkegel (cool guy extraordinaire)";
+      _label2.AutoSize = true;
+      _label2.Location = new System.Drawing.Point(13, 34);
+      _label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+      _label2.Name = "_label2";
+      _label2.Size = new System.Drawing.Size(254, 15);
+      _label2.TabIndex = 2;
+      _label2.Text = "By Daddy Schubkegel (cool guy extraordinaire)";
       // 
       // _label3
       // 
-      this._label3.AutoSize = true;
-      this._label3.Location = new System.Drawing.Point(21, 97);
-      this._label3.Name = "_label3";
-      this._label3.Size = new System.Drawing.Size(78, 13);
-      this._label3.TabIndex = 3;
-      this._label3.Text = "Path to pictures:";
+      _label3.AutoSize = true;
+      _label3.Location = new System.Drawing.Point(13, 68);
+      _label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+      _label3.Name = "_label3";
+      _label3.Size = new System.Drawing.Size(93, 15);
+      _label3.TabIndex = 3;
+      _label3.Text = "Path to pictures:";
       // 
       // _okButton
       // 
-      this._okButton.DialogResult = System.Windows.Forms.DialogResult.OK;
-      this._okButton.Location = new System.Drawing.Point(24, 156);
-      this._okButton.Name = "_okButton";
-      this._okButton.Size = new System.Drawing.Size(75, 23);
-      this._okButton.TabIndex = 4;
-      this._okButton.Text = "OK";
-      this._okButton.UseVisualStyleBackColor = true;
-      this._okButton.Click += new System.EventHandler(this.okButton_Click);
+      _okButton.DialogResult = System.Windows.Forms.DialogResult.OK;
+      _okButton.Location = new System.Drawing.Point(201, 115);
+      _okButton.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+      _okButton.Name = "_okButton";
+      _okButton.Size = new System.Drawing.Size(88, 27);
+      _okButton.TabIndex = 2;
+      _okButton.Text = "&OK";
+      _okButton.UseVisualStyleBackColor = true;
+      _okButton.Click += okButton_Click;
       // 
       // _cancelButton
       // 
-      this._cancelButton.CausesValidation = false;
-      this._cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-      this._cancelButton.Location = new System.Drawing.Point(135, 156);
-      this._cancelButton.Name = "_cancelButton";
-      this._cancelButton.Size = new System.Drawing.Size(75, 23);
-      this._cancelButton.TabIndex = 5;
-      this._cancelButton.Text = "Cancel";
-      this._cancelButton.UseVisualStyleBackColor = true;
-      this._cancelButton.Click += new System.EventHandler(this.cancelButton_Click);
+      _cancelButton.CausesValidation = false;
+      _cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+      _cancelButton.Location = new System.Drawing.Point(297, 115);
+      _cancelButton.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+      _cancelButton.Name = "_cancelButton";
+      _cancelButton.Size = new System.Drawing.Size(88, 27);
+      _cancelButton.TabIndex = 3;
+      _cancelButton.Text = "&Cancel";
+      _cancelButton.UseVisualStyleBackColor = true;
+      _cancelButton.Click += cancelButton_Click;
+      // 
+      // _browseButton
+      // 
+      _browseButton.Location = new System.Drawing.Point(516, 86);
+      _browseButton.Name = "_browseButton";
+      _browseButton.Size = new System.Drawing.Size(75, 23);
+      _browseButton.TabIndex = 1;
+      _browseButton.Text = "&Browse...";
+      _browseButton.UseVisualStyleBackColor = true;
+      _browseButton.Click += browseButton_Click;
       // 
       // SettingsForm
       // 
-      this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-      this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-      this.ClientSize = new System.Drawing.Size(265, 194);
-      this.Controls.Add(this._cancelButton);
-      this.Controls.Add(this._okButton);
-      this.Controls.Add(this._label3);
-      this.Controls.Add(this._label2);
-      this.Controls.Add(this._label1);
-      this.Controls.Add(this._textBox);
-      this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-      this.MaximizeBox = false;
-      this.Name = "SettingsForm";
-      this.Text = "Screen Saver Settings";
-      this.ResumeLayout(false);
-      this.PerformLayout();
+      AcceptButton = _okButton;
+      AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+      AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+      CancelButton = _cancelButton;
+      ClientSize = new System.Drawing.Size(603, 150);
+      Controls.Add(_browseButton);
+      Controls.Add(_cancelButton);
+      Controls.Add(_okButton);
+      Controls.Add(_label3);
+      Controls.Add(_label2);
+      Controls.Add(_label1);
+      Controls.Add(_textBox);
+      FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+      Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+      MaximizeBox = false;
+      Name = "SettingsForm";
+      Text = "Screen Saver Settings";
+      ResumeLayout(false);
+      PerformLayout();
     }
 
     private System.Windows.Forms.TextBox _textBox;
@@ -113,5 +134,6 @@ namespace FamilyPicScreenSaver
     private System.Windows.Forms.Label _label3;
     private System.Windows.Forms.Button _okButton;
     private System.Windows.Forms.Button _cancelButton;
+    private System.Windows.Forms.Button _browseButton;
   }
 }
