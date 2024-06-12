@@ -4,6 +4,8 @@ You have complete freedom to do anything you want with the software, for any pur
 Please refer to <http://unlicense.org/>
 */
 
+using System;
+
 namespace FamilyPicScreenSaver
 {
   partial class ScreenSaverForm
@@ -25,8 +27,14 @@ namespace FamilyPicScreenSaver
       this._videoView1 = new LibVLCSharp.WinForms.VideoView();
       this._pictureBox1 = new System.Windows.Forms.PictureBox();
       ((System.ComponentModel.ISupportInitialize)(this._videoView1)).BeginInit();
-      this._changePictureTimer = new System.Windows.Forms.Timer(this.components);
+      this._checkForMouseMovementTimer = new System.Windows.Forms.Timer(this.components);
       this.SuspendLayout();
+      //
+      // _changePictureTimer
+      //
+      this._checkForMouseMovementTimer.Interval = 100;
+      this._checkForMouseMovementTimer.Tick += new EventHandler(CheckForMouseMovementTimerTick);
+      this._checkForMouseMovementTimer.Enabled = true;
       // 
       // _videoView1
       // 
@@ -68,7 +76,7 @@ namespace FamilyPicScreenSaver
       this.PerformLayout();
     }
 
-    private System.Windows.Forms.Timer _changePictureTimer;
+    private System.Windows.Forms.Timer _checkForMouseMovementTimer;
     private System.Windows.Forms.PictureBox _pictureBox1;
     private LibVLCSharp.WinForms.VideoView _videoView1;
   }

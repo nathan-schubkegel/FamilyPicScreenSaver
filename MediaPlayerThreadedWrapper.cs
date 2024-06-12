@@ -7,103 +7,106 @@ Please refer to <http://unlicense.org/>
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
 using System;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace FamilyPicScreenSaver
 {
+  // the guide says to avoid using the media player from its own events
+  // https://github.com/videolan/libvlcsharp/blob/3.8.5/docs/best_practices.md#do-not-call-libvlc-from-a-libvlc-event-without-switching-thread-first
+  // (but in Win32 it's hard to guarantee non-reentrance)
+  // so this wrapper class exists to only use the media player from background threads
+
   public class MediaPlayerThreadedWrapper
   {
     private readonly LibVLC _libVLC;
     private readonly MediaPlayer _mediaPlayer;
-    private volatile bool _isPlaying;
-    private volatile bool _isTweeningPlaying;
-
-    public bool IsPlaying => _isTweeningPlaying || _isPlaying;
+    private readonly Channel<Action> _commands = Channel.CreateUnbounded<Action>();
+    
+    public event Action EndOfVideoReached;
 
     public MediaPlayerThreadedWrapper(LibVLC libVLC, MediaPlayer mediaPlayer)
     {
-      // the guide says to avoid using the media player from its own events
-      // https://github.com/videolan/libvlcsharp/blob/3.8.5/docs/best_practices.md#do-not-call-libvlc-from-a-libvlc-event-without-switching-thread-first
-      // (but in Win32 it's hard to guarantee non-reentrance)
-      // so this wrapper class only uses the media player from background threads
       _libVLC = libVLC;
       _mediaPlayer = mediaPlayer;
-      _mediaPlayer.Playing += MediaPlayer_Playing;
-      _mediaPlayer.Stopped += MediaPlayer_Stopped;
-      Muted = true; // start muted
+      _mediaPlayer.EndReached += MediaPlayer_EndReached;
+      _mediaPlayer.Volume = 0; // start muted
+      Task.Run(HandleCommands);
     }
 
-    private void MediaPlayer_Stopped(object sender, EventArgs e)
+    private async Task HandleCommands()
     {
-      _isPlaying = false;
-      _isTweeningPlaying = false;
+      while (true)
+      {
+        var command = await _commands.Reader.ReadAsync();
+        
+        try
+        {
+          command();
+        }
+        catch
+        {
+          // oh well
+        }
+      }
     }
 
-    private void MediaPlayer_Playing(object sender, EventArgs e)
+    private void MediaPlayer_EndReached(object sender, EventArgs e)
     {
-      _isPlaying = true;
+      Task.Run(() => EndOfVideoReached?.Invoke());
     }
 
-    public void AssociateWithControl(VideoView videoView)
+    public void AssociateWithVideoView(VideoView videoView)
     {
       videoView.MediaPlayer = _mediaPlayer;
     }
 
     public void Play(string filePath)
     {
-      _isTweeningPlaying = true;
-      Task.Run(() =>
+      _commands.Writer.TryWrite(() =>
       {
-        try
+        lock (_mediaPlayer)
         {
-          lock (_mediaPlayer)
-          {
-            using var media = new Media(_libVLC, new Uri(filePath));
-            _mediaPlayer.Play(media);
-            // NOTE: this returns false when it attempts to play a bogus file
-            // but I observe the Playing and Stopped events still fire in that scenario (great!)
-          }
-        }
-        catch
-        {
-          _isTweeningPlaying = false;
+          using var media = new Media(_libVLC, new Uri(filePath));
+          _mediaPlayer.Play(media);
         }
       });
     }
 
     public void Stop()
     {
-      Task.Run(() =>
+      _commands.Writer.TryWrite(() =>
       {
-        try
+        lock (_mediaPlayer)
         {
-          lock (_mediaPlayer)
-          {
-            _mediaPlayer.Stop();
-          }
-        }
-        catch
-        {
-          _isPlaying = false;
+          _mediaPlayer.Stop();
         }
       });
     }
 
-    public bool Muted
+    public void SetPaused(bool paused)
     {
-      get => _isMuted;
-      set
+      _commands.Writer.TryWrite(() =>
       {
-        _isMuted = value;
-        Task.Run(() =>
+        lock (_mediaPlayer)
         {
-          lock (_mediaPlayer)
+          if (_mediaPlayer.CanPause)
           {
-            _mediaPlayer.Volume = _isMuted ? 0 : 100;
+            _mediaPlayer.SetPause(paused);
           }
-        });
-      }
+        }
+      });
     }
-    private volatile bool _isMuted;
+
+    public void SetMuted(bool muted)
+    {
+      _commands.Writer.TryWrite(() =>
+      {
+        lock (_mediaPlayer)
+        {
+          _mediaPlayer.Volume = muted ? 0 : 100;
+        }
+      });
+    }
   }
 }

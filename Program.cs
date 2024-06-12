@@ -8,6 +8,7 @@ using System;
 using System.Linq;
 using System.Windows.Forms;
 using System.Globalization;
+using LibVLCSharp.Shared;
 
 namespace FamilyPicScreenSaver
 {
@@ -29,17 +30,24 @@ namespace FamilyPicScreenSaver
             ulong.TryParse(handleText, CultureInfo.InvariantCulture, out var handleUlong) ? new IntPtr((long)handleUlong) :
             throw new ArgumentException("Invalid or missing window handle argument");
 
-          Application.Run(new ScreenSaverForm(previewWndHandle));
+          var libVLC = new LibVLC(); // try to only create one of these per application
+          var mediaSelector = new MediaSelector(libVLC); 
+          Application.Run(new ScreenSaverForm(mediaSelector, previewWndHandle));
         }
         else if (arg1.StartsWith("/s", StringComparison.OrdinalIgnoreCase))
         {
-          ShowScreenSaverOnAllMonitors();
+          var libVLC = new LibVLC(); // try to only create one of these per application
+          var mediaSelector = new MediaSelector(libVLC);
+          foreach (Screen screen in Screen.AllScreens)
+          {
+            new ScreenSaverForm(mediaSelector, screen.Bounds).Show();
+          }
           Application.Run();
         }  
         else
         {
           // technically there's a "/c" argument that drives this behavior
-          // but it's a fine behavior for when people double-click the application
+          // but it's also a fine behavior for when people double-click the application
           Application.Run(new SettingsForm());
         }
       }
@@ -47,14 +55,6 @@ namespace FamilyPicScreenSaver
       {
         MessageBox.Show($"Error in FamilyPicScreenSaver: {ex}");
       }
-    }
-
-    static void ShowScreenSaverOnAllMonitors()
-    {
-      foreach (Screen screen in Screen.AllScreens)
-      {
-        new ScreenSaverForm(screen.Bounds).Show();
-      }           
     }
   }
 }
