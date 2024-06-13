@@ -15,7 +15,6 @@ namespace FamilyPicScreenSaver
 {
   public class MediaSelector
   {
-    private const int PictureTimeoutMs = 10000;
     private readonly MediaFinder _mediaFinder;
     private readonly MediaPlayer _mediaPlayer;
     private readonly MediaPlayerThreadedWrapper _mediaPlayerController;
@@ -28,6 +27,7 @@ namespace FamilyPicScreenSaver
     private string _currentFilePath;
     private MediaType _currentMediaType;
     private Stopwatch _currentPictureDisplayedTime;
+    private TimeSpan _currentPictureTimeout;
 
     public event Action MediaChanged;
 
@@ -69,6 +69,8 @@ namespace FamilyPicScreenSaver
       {
         _currentMediaIndex = 0;
       }
+
+      bool isLoadingPic = false;
       if (_currentMediaIndex < media.Count)
       {
         _currentFilePath = media[_currentMediaIndex];
@@ -78,6 +80,7 @@ namespace FamilyPicScreenSaver
       {
         _currentFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "loading.jpg");
         _currentMediaType = MediaType.Picture;
+        isLoadingPic = true;
       }
 
       if (_currentMediaType == MediaType.Video)
@@ -92,6 +95,7 @@ namespace FamilyPicScreenSaver
       {
         _mediaPlayerController.Stop();
         _currentPictureDisplayedTime = Stopwatch.StartNew();
+        _currentPictureTimeout = TimeSpan.FromSeconds(isLoadingPic ? 1 : 10);
       }
 
       // Task so it happens while the lock isn't held
@@ -135,7 +139,7 @@ namespace FamilyPicScreenSaver
     {
       lock (_currentLock)
       {
-        if (_currentPictureDisplayedTime?.ElapsedMilliseconds > PictureTimeoutMs && !Paused)
+        if (_currentPictureDisplayedTime?.Elapsed > _currentPictureTimeout && !Paused)
         {
           _currentMediaIndex++;
           _currentAutomaticAdvanceCount++;
@@ -171,6 +175,7 @@ namespace FamilyPicScreenSaver
       {
         lock (_currentLock)
         {
+          _currentAutomaticAdvanceCount = 0;
           _paused = value;
           if (value)
           {
@@ -193,6 +198,7 @@ namespace FamilyPicScreenSaver
       {
         lock (_currentLock)
         {
+          _currentAutomaticAdvanceCount = 0;
           _muted = value;
           _mediaPlayerController.SetMuted(value);
         }
