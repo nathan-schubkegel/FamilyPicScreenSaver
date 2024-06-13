@@ -7,6 +7,8 @@ Please refer to <http://unlicense.org/>
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
 using System;
+using System.Diagnostics.Metrics;
+using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
@@ -29,8 +31,8 @@ namespace FamilyPicScreenSaver
     {
       _libVLC = libVLC;
       _mediaPlayer = new MediaPlayer(libVLC);
+      _mediaPlayer.Playing += MediaPlayer_Playing;
       _mediaPlayer.EndReached += MediaPlayer_EndReached;
-      _mediaPlayer.Volume = 0; // start muted
       Task.Run(HandleCommands);
     }
 
@@ -54,6 +56,20 @@ namespace FamilyPicScreenSaver
     private void MediaPlayer_EndReached(object sender, EventArgs e)
     {
       Task.Run(() => EndOfVideoReached?.Invoke());
+    }
+
+    private void MediaPlayer_Playing(object sender, EventArgs e)
+    {
+      Task.Run(() =>
+      {
+        // Changing the audio track seems to only work when the media is playing,
+        // and we WERE doing that for mute (but now we're not... it didn't reliably work),
+        // so just always re-apply mute when we start playing
+        lock (_mediaPlayer)
+        {
+          _mediaPlayer.Mute = _muted;
+        }
+      });
     }
 
     public void AssociateWithVideoView(VideoView videoView)
@@ -100,13 +116,15 @@ namespace FamilyPicScreenSaver
 
     public void SetMuted(bool muted)
     {
+      _muted = muted;
       _commands.Writer.TryWrite(() =>
       {
         lock (_mediaPlayer)
         {
-          _mediaPlayer.Volume = muted ? 0 : 100;
+          _mediaPlayer.Mute = muted;
         }
       });
     }
+    private volatile bool _muted;
   }
 }

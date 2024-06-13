@@ -202,6 +202,6 @@ namespace FamilyPicScreenSaver
         }
       }
     }
-    private bool _muted;
+    private bool _muted = true;
   }
 }
