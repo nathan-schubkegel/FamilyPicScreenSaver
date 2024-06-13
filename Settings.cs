@@ -5,41 +5,57 @@ Please refer to <http://unlicense.org/>
 */
 
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 
 namespace FamilyPicScreenSaver
 {
   public static class Settings
   {
-    public static string PictureFolder;
+    public static ImmutableArray<string> PictureFolders;
     
-    private static string PictureFolderSettingFilePath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FamilyPickScreenSaver", "PictureFolder.txt");
+    private static string PictureFoldersSettingFilePath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FamilyPickScreenSaver", "PictureFolders.txt");
     
     static Settings()
     {
-      PictureFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
-    
-      var path = PictureFolderSettingFilePath;
-      if (File.Exists(path))
+      // default to your pictures folder
+      PictureFolders = new[] { Environment.GetFolderPath(Environment.SpecialFolder.MyPictures) }.ToImmutableArray();
+
+      try
       {
-        path = File.ReadAllText(path);
-        if (Directory.Exists(path))
+        var path = PictureFoldersSettingFilePath;
+        if (File.Exists(path))
         {
-          PictureFolder = path;
+          PictureFolders = File.ReadAllLines(path)
+            .Where(x => x != null)
+            .Select(x => x.Trim())
+            .Distinct()
+            .ToImmutableArray();
         }
+      }
+      catch
+      {
+        // better to not show any pictures if you have bogus settings
+        PictureFolders = ImmutableArray<string>.Empty;
       }
     }
     
-    public static void SetPictureFolder(string value)
+    public static void SetPictureFolders(IEnumerable<string> value)
     {
-      PictureFolder = value;
-      var path = PictureFolderSettingFilePath;
+      PictureFolders = value
+        .Where(x => x != null)
+        .Select(x => x.Trim())
+        .Distinct()
+        .ToImmutableArray();
+      var path = PictureFoldersSettingFilePath;
       var dirPath = Path.GetDirectoryName(path);
       if (!Directory.Exists(dirPath))
       {
         Directory.CreateDirectory(dirPath);
       }
-      File.WriteAllText(path, value);
+      File.WriteAllLines(path, PictureFolders);
     }
   }
 }

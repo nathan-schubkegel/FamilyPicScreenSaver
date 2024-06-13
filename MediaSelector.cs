@@ -36,7 +36,7 @@ namespace FamilyPicScreenSaver
       _mediaPlayer = new MediaPlayer(libVlc);
       _mediaPlayerController = new MediaPlayerThreadedWrapper(libVlc, _mediaPlayer);
       _mediaPlayerController.EndOfVideoReached += MediaPlayerController_EndOfVideoReached;
-      _mediaFinder = new MediaFinder(new[] { Settings.PictureFolder });
+      _mediaFinder = new MediaFinder(Settings.PictureFolders);
       _pictureChangeTimer = new System.Threading.Timer(PictureChangeTimerTick);
       _pictureChangeTimer.Change(100, 100);
 

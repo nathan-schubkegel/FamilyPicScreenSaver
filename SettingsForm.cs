@@ -5,6 +5,7 @@ Please refer to <http://unlicense.org/>
 */
 
 using System;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace FamilyPicScreenSaver
@@ -14,12 +15,12 @@ namespace FamilyPicScreenSaver
     public SettingsForm()
     {
       InitializeComponent();
-      _textBox.Text = Settings.PictureFolder;
+      _pictureFolderPathsTextBox.Lines = Settings.PictureFolders.ToArray();
     }
 
     private void okButton_Click(object sender, EventArgs e)
     {
-      Settings.SetPictureFolder(_textBox.Text);
+      Settings.SetPictureFolders(_pictureFolderPathsTextBox.Lines);
       Close();
     }
 
@@ -28,21 +29,16 @@ namespace FamilyPicScreenSaver
       Close();
     }
 
-    private void browseButton_Click(object sender, EventArgs e)
+    private void addButton_Click(object sender, EventArgs e)
     {
       using var dialog = new FolderBrowserDialog();
-      try
-      {
-        dialog.SelectedPath = _textBox.Text;
-      }
-      catch
-      {
-        // oh well
-      }
       var result = dialog.ShowDialog(this);
       if (result == DialogResult.OK)
       {
-        _textBox.Text = dialog.SelectedPath;
+        _pictureFolderPathsTextBox.Lines = _pictureFolderPathsTextBox.Lines
+          .Concat(new[] { dialog.SelectedPath })
+          .Where(x => !string.IsNullOrWhiteSpace(x))
+          .ToArray();
       }
     }
   }

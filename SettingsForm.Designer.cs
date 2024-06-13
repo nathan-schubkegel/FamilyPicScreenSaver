@@ -21,22 +21,14 @@ namespace FamilyPicScreenSaver
 
     private void InitializeComponent()
     {
-      _textBox = new System.Windows.Forms.TextBox();
       _label1 = new System.Windows.Forms.Label();
       _label2 = new System.Windows.Forms.Label();
       _label3 = new System.Windows.Forms.Label();
       _okButton = new System.Windows.Forms.Button();
       _cancelButton = new System.Windows.Forms.Button();
-      _browseButton = new System.Windows.Forms.Button();
+      _addButton = new System.Windows.Forms.Button();
+      _pictureFolderPathsTextBox = new System.Windows.Forms.RichTextBox();
       SuspendLayout();
-      // 
-      // _textBox
-      // 
-      _textBox.Location = new System.Drawing.Point(13, 86);
-      _textBox.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-      _textBox.Name = "_textBox";
-      _textBox.Size = new System.Drawing.Size(496, 23);
-      _textBox.TabIndex = 0;
       // 
       // _label1
       // 
@@ -63,17 +55,18 @@ namespace FamilyPicScreenSaver
       // _label3
       // 
       _label3.AutoSize = true;
-      _label3.Location = new System.Drawing.Point(13, 68);
+      _label3.Location = new System.Drawing.Point(13, 59);
       _label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
       _label3.Name = "_label3";
-      _label3.Size = new System.Drawing.Size(93, 15);
+      _label3.Size = new System.Drawing.Size(112, 15);
       _label3.TabIndex = 3;
-      _label3.Text = "Path to pictures:";
+      _label3.Text = "Picture Folder Paths";
       // 
       // _okButton
       // 
+      _okButton.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
       _okButton.DialogResult = System.Windows.Forms.DialogResult.OK;
-      _okButton.Location = new System.Drawing.Point(201, 115);
+      _okButton.Location = new System.Drawing.Point(406, 207);
       _okButton.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
       _okButton.Name = "_okButton";
       _okButton.Size = new System.Drawing.Size(88, 27);
@@ -84,9 +77,10 @@ namespace FamilyPicScreenSaver
       // 
       // _cancelButton
       // 
+      _cancelButton.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
       _cancelButton.CausesValidation = false;
       _cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-      _cancelButton.Location = new System.Drawing.Point(297, 115);
+      _cancelButton.Location = new System.Drawing.Point(502, 207);
       _cancelButton.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
       _cancelButton.Name = "_cancelButton";
       _cancelButton.Size = new System.Drawing.Size(88, 27);
@@ -95,31 +89,40 @@ namespace FamilyPicScreenSaver
       _cancelButton.UseVisualStyleBackColor = true;
       _cancelButton.Click += cancelButton_Click;
       // 
-      // _browseButton
+      // _addButton
       // 
-      _browseButton.Location = new System.Drawing.Point(516, 86);
-      _browseButton.Name = "_browseButton";
-      _browseButton.Size = new System.Drawing.Size(75, 23);
-      _browseButton.TabIndex = 1;
-      _browseButton.Text = "&Browse...";
-      _browseButton.UseVisualStyleBackColor = true;
-      _browseButton.Click += browseButton_Click;
+      _addButton.Anchor = System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left;
+      _addButton.Location = new System.Drawing.Point(12, 207);
+      _addButton.Name = "_addButton";
+      _addButton.Size = new System.Drawing.Size(88, 27);
+      _addButton.TabIndex = 1;
+      _addButton.Text = "&Add...";
+      _addButton.UseVisualStyleBackColor = true;
+      _addButton.Click += addButton_Click;
+      // 
+      // _pictureFolderPathsTextBox
+      // 
+      _pictureFolderPathsTextBox.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+      _pictureFolderPathsTextBox.Location = new System.Drawing.Point(12, 77);
+      _pictureFolderPathsTextBox.Name = "_pictureFolderPathsTextBox";
+      _pictureFolderPathsTextBox.Size = new System.Drawing.Size(579, 124);
+      _pictureFolderPathsTextBox.TabIndex = 4;
+      _pictureFolderPathsTextBox.Text = "";
       // 
       // SettingsForm
       // 
-      AcceptButton = _okButton;
       AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
       AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
       CancelButton = _cancelButton;
-      ClientSize = new System.Drawing.Size(603, 150);
-      Controls.Add(_browseButton);
+      ClientSize = new System.Drawing.Size(603, 246);
+      Controls.Add(_pictureFolderPathsTextBox);
+      Controls.Add(_addButton);
       Controls.Add(_cancelButton);
       Controls.Add(_okButton);
       Controls.Add(_label3);
       Controls.Add(_label2);
       Controls.Add(_label1);
-      Controls.Add(_textBox);
-      FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+      FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;
       Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
       MaximizeBox = false;
       Name = "SettingsForm";
@@ -128,12 +131,12 @@ namespace FamilyPicScreenSaver
       PerformLayout();
     }
 
-    private System.Windows.Forms.TextBox _textBox;
     private System.Windows.Forms.Label _label1;
     private System.Windows.Forms.Label _label2;
     private System.Windows.Forms.Label _label3;
     private System.Windows.Forms.Button _okButton;
     private System.Windows.Forms.Button _cancelButton;
-    private System.Windows.Forms.Button _browseButton;
+    private System.Windows.Forms.Button _addButton;
+    private System.Windows.Forms.RichTextBox _pictureFolderPathsTextBox;
   }
 }

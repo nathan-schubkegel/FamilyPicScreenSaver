@@ -88,6 +88,11 @@ namespace FamilyPicScreenSaver
           }
         }
       }
+
+      if (_media.Count == 0)
+      {
+        _media = new[] { Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "broken.jpg") }.ToImmutableList();
+      }
     }
 
     public static bool FilePathIsProbablyVideo(string file)
