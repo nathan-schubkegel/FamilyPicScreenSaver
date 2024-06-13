@@ -16,7 +16,6 @@ namespace FamilyPicScreenSaver
   public class MediaSelector
   {
     private readonly MediaFinder _mediaFinder;
-    private readonly MediaPlayer _mediaPlayer;
     private readonly MediaPlayerThreadedWrapper _mediaPlayerController;
     private readonly Random _random = new Random((int)(DateTime.UtcNow.Ticks % int.MaxValue));
     private readonly System.Threading.Timer _pictureChangeTimer;
@@ -33,8 +32,7 @@ namespace FamilyPicScreenSaver
 
     public MediaSelector(LibVLC libVlc)
     {
-      _mediaPlayer = new MediaPlayer(libVlc);
-      _mediaPlayerController = new MediaPlayerThreadedWrapper(libVlc, _mediaPlayer);
+      _mediaPlayerController = new MediaPlayerThreadedWrapper(libVlc);
       _mediaPlayerController.EndOfVideoReached += MediaPlayerController_EndOfVideoReached;
       _mediaFinder = new MediaFinder(Settings.PictureFolders);
       _pictureChangeTimer = new System.Threading.Timer(PictureChangeTimerTick);
@@ -114,7 +112,7 @@ namespace FamilyPicScreenSaver
 
     public void AssociateWithVideoView(VideoView videoView)
     {
-      videoView.MediaPlayer = _mediaPlayer;
+      _mediaPlayerController.AssociateWithVideoView(videoView);
     }
 
     public (string FilePath, MediaType MediaType) GetCurrentMedia()

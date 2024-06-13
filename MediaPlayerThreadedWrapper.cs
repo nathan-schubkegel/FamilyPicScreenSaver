@@ -25,10 +25,10 @@ namespace FamilyPicScreenSaver
     
     public event Action EndOfVideoReached;
 
-    public MediaPlayerThreadedWrapper(LibVLC libVLC, MediaPlayer mediaPlayer)
+    public MediaPlayerThreadedWrapper(LibVLC libVLC)
     {
       _libVLC = libVLC;
-      _mediaPlayer = mediaPlayer;
+      _mediaPlayer = new MediaPlayer(libVLC);
       _mediaPlayer.EndReached += MediaPlayer_EndReached;
       _mediaPlayer.Volume = 0; // start muted
       Task.Run(HandleCommands);
