@@ -7,8 +7,6 @@ Please refer to <http://unlicense.org/>
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
 using System;
-using System.Diagnostics.Metrics;
-using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 

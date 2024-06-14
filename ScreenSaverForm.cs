@@ -163,6 +163,15 @@ namespace FamilyPicScreenSaver
       {
         _mediaSelector.Muted = !_mediaSelector.Muted;
       }
+      else if (e.KeyCode == Keys.O || e.KeyCode == Keys.F)
+      {
+        using (Process.Start("explorer.exe", "/select, \"" + _mediaSelector.GetCurrentMedia().FilePath + "\"")) { }
+
+        // there's no guarantee this event isn't being fired from a LibLVC event
+        // https://github.com/videolan/libvlcsharp/blob/3.8.5/docs/best_practices.md#do-not-call-libvlc-from-a-libvlc-event-without-switching-thread-first
+        // so avoid the risk of hanging this thread by just hard-killing the application on form close
+        Environment.Exit(0);
+      }
       else if (e.KeyCode == Keys.Space)
       {
         _mediaSelector.Paused = !_mediaSelector.Paused;
