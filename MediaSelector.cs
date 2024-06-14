@@ -51,12 +51,7 @@ namespace FamilyPicScreenSaver
       // pick stuff randomly if nobody's driving this thing
       if (_currentAutomaticAdvanceCount >= 10)
       {
-        _currentAutomaticAdvanceCount = 0;
-        var newIndex = _random.Next(media.Count + 1);
-        if (newIndex == _currentMediaIndex)
-        {
-          _currentMediaIndex++;
-        }
+        GoToRandomIndex();
       }
 
       if (_currentMediaIndex < 0)
@@ -163,6 +158,29 @@ namespace FamilyPicScreenSaver
         _currentMediaIndex--;
         _currentAutomaticAdvanceCount = 0;
         RespondToCurrentMediaIndexChanged();
+      }
+    }
+
+    public void Random()
+    {
+      lock (_currentLock)
+      {
+        GoToRandomIndex();
+        RespondToCurrentMediaIndexChanged();
+      }
+    }
+
+    private void GoToRandomIndex()
+    {
+      _currentAutomaticAdvanceCount = 0;
+      var newIndex = _random.Next(_mediaFinder.Media.Count + 1);
+      if (newIndex == _currentMediaIndex)
+      {
+        _currentMediaIndex++;
+      }
+      else
+      {
+        _currentMediaIndex = newIndex;
       }
     }
 

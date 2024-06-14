@@ -159,6 +159,10 @@ namespace FamilyPicScreenSaver
       {
         _mediaSelector.Previous();
       }
+      else if (e.KeyCode == Keys.Up)
+      {
+        _mediaSelector.Random();
+      }
       else if (e.KeyCode == Keys.M)
       {
         _mediaSelector.Muted = !_mediaSelector.Muted;
