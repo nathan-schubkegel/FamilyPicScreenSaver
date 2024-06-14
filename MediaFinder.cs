@@ -15,7 +15,11 @@ namespace FamilyPicScreenSaver
 {
   public class MediaFinder
   {
-    private volatile ImmutableList<string> _media = ImmutableList<string>.Empty;
+    public static readonly string LoadingPicPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "loading.jpg");
+
+    public static readonly string BrokenPicPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "broken.jpg");
+
+    private volatile ImmutableList<string> _media = ImmutableList<string>.Empty.Add(LoadingPicPath);
 
     public IReadOnlyList<string> Media => _media;
 
@@ -27,7 +31,7 @@ namespace FamilyPicScreenSaver
 
     private void Scan(List<string> directories)
     {
-      _media = ImmutableList<string>.Empty;
+      _media = ImmutableList<string>.Empty.Add(LoadingPicPath);
 
       foreach (var dir in directories)
       {
@@ -89,9 +93,16 @@ namespace FamilyPicScreenSaver
         }
       }
 
-      if (_media.Count == 0)
+      if (_media.Count == 1)
       {
-        _media = new[] { Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "broken.jpg") }.ToImmutableList();
+        _media = ImmutableList<string>.Empty.Add(BrokenPicPath);
+      }
+      else
+      {
+        // remove loading pic, put last pic there (so all other indexes are unchanged
+        // so forward/backward history remains largely unbroken)
+        var last = _media.Last();
+        _media = _media.SetItem(0, last).RemoveAt(_media.Count - 1);
       }
     }
 
