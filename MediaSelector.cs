@@ -9,6 +9,7 @@ using LibVLCSharp.WinForms;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace FamilyPicScreenSaver
@@ -30,6 +31,9 @@ namespace FamilyPicScreenSaver
     private MediaType _currentMediaType;
     private Stopwatch _currentPictureDisplayedTime;
     private TimeSpan _currentPictureTimeout;
+    private string _debugInfo;
+
+    public string DebugInfo { get { lock (_currentLock) return _debugInfo; } }
 
     public event Action MediaChanged;
 
@@ -70,6 +74,9 @@ namespace FamilyPicScreenSaver
     {
       lock (_currentLock)
       {
+        StringBuilder debugInfo = new();
+        debugInfo.Append(navigationType.ToString() + ", ");
+
         var media = _mediaFinder.Media;
 
         if (navigationType == NavigationType.ForwardAutomatically)
@@ -106,11 +113,13 @@ namespace FamilyPicScreenSaver
             // try to have some randomness while images are being found
             if (_currentFilePath == MediaFinder.LoadingPicPath || _lastObservedMediaCount != media.Count)
             {
+              debugInfo.Append("random (loading or media count change)");
               _currentMediaIndex = GetRandomIndex();
               _lastObservedMediaCount = media.Count;
             }
             else if (_nextIndexes.Count > 0)
             {
+              debugInfo.Append($"_nextIndexes (Count = {_nextIndexes.Count})");
               _currentMediaIndex = _nextIndexes.Pop();
             }
             // pick a random new image every 10, so
@@ -118,14 +127,17 @@ namespace FamilyPicScreenSaver
             // 2.) don't get stuck watching a hundred of young Alaric's pictures of the floor
             else if (_currentAutomaticAdvanceCount >= 10)
             {
+              debugInfo.Append($"random (Count == {_currentAutomaticAdvanceCount})");
               _currentMediaIndex = GetRandomIndex();
             }
             else if (_currentMediaIndex == null)
             {
+              debugInfo.Append($"_currentMediaIndex == null");
               _currentMediaIndex = 0;
             }
             else
             {
+              debugInfo.Append($"increment");
               _currentMediaIndex++;
             }
             break;
@@ -133,27 +145,42 @@ namespace FamilyPicScreenSaver
           case NavigationType.ForwardManually:
             if (_nextIndexes.Count > 0)
             {
+              debugInfo.Append($"_nextIndexes (Count = {_nextIndexes.Count})");
               _currentMediaIndex = _nextIndexes.Pop();
+            }
+            else if (_currentMediaIndex == null)
+            {
+              debugInfo.Append($"_currentMediaIndex == null");
+              _currentMediaIndex = 0;
             }
             else
             {
-              _currentMediaIndex = (_currentMediaIndex ?? 0) + 1;
+              debugInfo.Append($"increment");
+              _currentMediaIndex++;
             }
             break;
 
           case NavigationType.BackManually:
             if (_previousIndexes.Count > 0)
             {
+              debugInfo.Append($"_previousIndexes (Count = {_previousIndexes.Count})");
               _currentMediaIndex = _previousIndexes.Pop();
+            }
+            else if (_currentMediaIndex == null)
+            {
+              debugInfo.Append($"_currentMediaIndex == null");
+              _currentMediaIndex = media.Count - 1;
             }
             else
             {
-              _currentMediaIndex = (_currentMediaIndex ?? 0) - 1;
+              debugInfo.Append($"decrement");
+              _currentMediaIndex--;
             }
             break;
 
           // case NavigationType.RandomManually:
           default:
+            debugInfo.Append($"random");
             _currentMediaIndex = GetRandomIndex();
             _nextIndexes.Clear();
             break;
@@ -173,9 +200,13 @@ namespace FamilyPicScreenSaver
           _currentMediaIndex = 0;
         }
         // MediaFinder guarantees that media always has at least 1 item, so 0 is safe
+        debugInfo.Append($", index={_currentMediaIndex}");
 
         _currentFilePath = media[_currentMediaIndex.Value];
         _currentMediaType = MediaFinder.FilePathIsProbablyVideo(_currentFilePath) ? MediaType.Video : MediaType.Picture;
+
+        debugInfo.AppendLine($", {_currentMediaType}");
+        debugInfo.Append(_currentFilePath);
 
         if (_currentMediaType == MediaType.Video)
         {
@@ -191,6 +222,8 @@ namespace FamilyPicScreenSaver
           _currentPictureDisplayedTime = Stopwatch.StartNew();
           _currentPictureTimeout = TimeSpan.FromSeconds(_currentFilePath == MediaFinder.LoadingPicPath ? 1 : 10);
         }
+
+        _debugInfo = debugInfo.ToString();
       }
 
       // Task so it happens while the lock isn't held

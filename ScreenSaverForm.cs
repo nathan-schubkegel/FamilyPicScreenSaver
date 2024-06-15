@@ -39,6 +39,7 @@ namespace FamilyPicScreenSaver
     private Point _mouseLocation;
     private bool _previewMode = false;
     private MediaSelector _mediaSelector;
+    private bool _showDebugInfo;
 
     private ScreenSaverForm(MediaSelector mediaSelector)
     {
@@ -106,11 +107,17 @@ namespace FamilyPicScreenSaver
             _pictureBox1.Image = Image.FromFile(currentMedia.FilePath);
             _pictureBox1.Visible = true;
           }
+          _debugInfoLabel.Text = _mediaSelector.DebugInfo;
+          _debugInfoLabel.Visible = _showDebugInfo;
+          _debugInfoLabel.BringToFront();
         }
-        catch
+        catch (Exception ex)
         {
           _pictureBox1.Visible = false;
           _videoView1.Visible = false;
+          _debugInfoLabel.Text = $"{ex.GetType().Name}: {ex.Message}";
+          _debugInfoLabel.Visible = true;
+          _debugInfoLabel.BringToFront();
         }
       });
     }
@@ -166,6 +173,12 @@ namespace FamilyPicScreenSaver
       else if (e.KeyCode == Keys.M)
       {
         _mediaSelector.Muted = !_mediaSelector.Muted;
+      }
+      else if (e.KeyCode == Keys.D)
+      {
+        _showDebugInfo = !_showDebugInfo;
+        _debugInfoLabel.BringToFront();
+        _debugInfoLabel.Visible = _showDebugInfo;
       }
       else if (e.KeyCode == Keys.O || e.KeyCode == Keys.F)
       {
