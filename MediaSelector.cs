@@ -47,15 +47,20 @@ namespace FamilyPicScreenSaver
       _mediaChangeTimer.Change(100, 100);
 
       // get something displayed now
-      Navigate(NavigationType.RandomManually);
+      Navigate(NavigationDirection.Random, NavigationActor.Automatic);
     }
 
-    enum NavigationType
+    enum NavigationDirection
     {
-      ForwardAutomatically,
-      ForwardManually,
-      BackManually,
-      RandomManually,
+      Forward,
+      Back,
+      Random,
+    }
+
+    enum NavigationActor
+    {
+      Manual,
+      Automatic,
     }
 
     private int GetRandomIndex()
@@ -71,16 +76,16 @@ namespace FamilyPicScreenSaver
       }
     }
 
-    private void Navigate(NavigationType navigationType)
+    private void Navigate(NavigationDirection navigationDirection, NavigationActor navigationActor)
     {
       lock (_currentLock)
       {
         StringBuilder debugInfo = new();
-        debugInfo.Append(navigationType.ToString() + ", ");
+        debugInfo.Append($"{navigationDirection} {navigationActor}, ");
 
         var media = _mediaFinder.Media;
 
-        if (navigationType == NavigationType.ForwardAutomatically)
+        if (navigationActor == NavigationActor.Automatic)
         {
           _currentAutomaticAdvanceCount++;
         }
@@ -92,18 +97,17 @@ namespace FamilyPicScreenSaver
         // save the current image/video we're looking at for back/forward functionality
         if (_currentMediaIndex != null)
         {
-          switch (navigationType)
+          switch (navigationDirection)
           {
-            case NavigationType.ForwardAutomatically:
-            case NavigationType.ForwardManually:
+            case NavigationDirection.Forward:
               _previousIndexes.AddToBack(_currentMediaIndex.Value);
               while (_previousIndexes.Count > 1000) _previousIndexes.RemoveFromFront();
               break;
-            case NavigationType.BackManually:
+            case NavigationDirection.Back:
               _nextIndexes.AddToBack(_currentMediaIndex.Value);
               while (_nextIndexes.Count > 1000) _nextIndexes.RemoveFromFront();
               break;
-            case NavigationType.RandomManually:
+            case NavigationDirection.Random:
               _previousIndexes.AddToBack(_currentMediaIndex.Value);
               while (_previousIndexes.Count > 1000) _previousIndexes.RemoveFromFront();
               break;
@@ -111,83 +115,85 @@ namespace FamilyPicScreenSaver
         }
 
         // decide what to view next
-        switch (navigationType)
+        if (navigationActor == NavigationActor.Automatic)
         {
-          case NavigationType.ForwardAutomatically:
-            // try to have some randomness while images are being found
-            if (_currentFilePath == MediaFinder.LoadingPicPath || _lastObservedMedia != media)
-            {
-              debugInfo.Append("random (loading or media count change)");
-              _currentMediaIndex = GetRandomIndex();
-              _lastObservedMedia = media;
-            }
-            else if (_nextIndexes.Count > 0)
-            {
-              debugInfo.Append($"_nextIndexes (Count = {_nextIndexes.Count})");
-              _currentMediaIndex = _nextIndexes.RemoveFromBack();
-            }
-            // pick a random new image every 10, so
-            // 1.) reduce constant jarring changes in time period of images/videos shown
-            // 2.) don't get stuck watching a hundred of young Alaric's pictures of the floor
-            else if (_currentAutomaticAdvanceCount >= 10)
-            {
-              debugInfo.Append($"random (Count == {_currentAutomaticAdvanceCount})");
-              _currentMediaIndex = GetRandomIndex();
-            }
-            else if (_currentMediaIndex == null)
-            {
-              debugInfo.Append($"_currentMediaIndex == null");
-              _currentMediaIndex = 0;
-            }
-            else
-            {
-              debugInfo.Append($"increment");
-              _currentMediaIndex++;
-            }
-            break;
-
-          case NavigationType.ForwardManually:
-            if (_nextIndexes.Count > 0)
-            {
-              debugInfo.Append($"_nextIndexes (Count = {_nextIndexes.Count})");
-              _currentMediaIndex = _nextIndexes.RemoveFromBack();
-            }
-            else if (_currentMediaIndex == null)
-            {
-              debugInfo.Append($"_currentMediaIndex == null");
-              _currentMediaIndex = 0;
-            }
-            else
-            {
-              debugInfo.Append($"increment");
-              _currentMediaIndex++;
-            }
-            break;
-
-          case NavigationType.BackManually:
-            if (_previousIndexes.Count > 0)
-            {
-              debugInfo.Append($"_previousIndexes (Count = {_previousIndexes.Count})");
-              _currentMediaIndex = _previousIndexes.RemoveFromBack();
-            }
-            else if (_currentMediaIndex == null)
-            {
-              debugInfo.Append($"_currentMediaIndex == null");
-              _currentMediaIndex = media.Count - 1;
-            }
-            else
-            {
-              debugInfo.Append($"decrement");
-              _currentMediaIndex--;
-            }
-            break;
-
-          // case NavigationType.RandomManually:
-          default:
+          // try to have some randomness while images are being found
+          if (_currentFilePath == MediaFinder.LoadingPicPath || _lastObservedMedia != media)
+          {
+            debugInfo.Append("loading or media count change");
+            _currentMediaIndex = GetRandomIndex();
+            _lastObservedMedia = media;
+          }
+          else if (_nextIndexes.Count > 0)
+          {
+            debugInfo.Append($"next index ({_nextIndexes.Count} remaining)");
+            _currentMediaIndex = _nextIndexes.RemoveFromBack();
+          }
+          // pick a random new image every 10, so
+          // 1.) reduce constant jarring changes in time period of images/videos shown
+          // 2.) don't get stuck watching a hundred of young Alaric's pictures of the floor
+          else if (_currentAutomaticAdvanceCount >= 10)
+          {
+            debugInfo.Append($"random after 10 advances");
+            _currentMediaIndex = GetRandomIndex();
+          }
+          else if (navigationDirection == NavigationDirection.Random)
+          {
             debugInfo.Append($"random");
             _currentMediaIndex = GetRandomIndex();
-            _nextIndexes.Clear();
-            break;
+          }
+          else if (_currentMediaIndex == null)
+          {
+            debugInfo.Append($"_currentMediaIndex == null");
+            _currentMediaIndex = GetRandomIndex();
+          }
+          else
+          {
+            debugInfo.Append($"increment");
+            _currentMediaIndex++;
+          }
+        }
+        else if (navigationDirection == NavigationDirection.Forward)
+        {
+          if (_nextIndexes.Count > 0)
+          {
+            debugInfo.Append($"next index ({_nextIndexes.Count} remaining)");
+            _currentMediaIndex = _nextIndexes.RemoveFromBack();
+          }
+          else if (_currentMediaIndex == null)
+          {
+            debugInfo.Append($"_currentMediaIndex == null");
+            _currentMediaIndex = 0;
+          }
+          else
+          {
+            debugInfo.Append($"increment");
+            _currentMediaIndex++;
+          }
+        }
+        else if (navigationDirection == NavigationDirection.Back)
+        {
+          if (_previousIndexes.Count > 0)
+          {
+            debugInfo.Append($"previous index ({_previousIndexes.Count} remaining)");
+            _currentMediaIndex = _previousIndexes.RemoveFromBack();
+          }
+          else if (_currentMediaIndex == null)
+          {
+            debugInfo.Append($"_currentMediaIndex == null");
+            _currentMediaIndex = media.Count - 1;
+          }
+          else
+          {
+            debugInfo.Append($"decrement");
+            _currentMediaIndex--;
+          }
+        }
+        else // NavigationDirection == Random
+        {
+          debugInfo.Append($"random");
+          _currentMediaIndex = GetRandomIndex();
+          _nextIndexes.Clear();
         }
 
         // sanity check the new index
@@ -220,7 +226,7 @@ namespace FamilyPicScreenSaver
           _mediaPlayerController.SetMuted(_muted);
 
           // when navigating automatically, just play 30 seconds of video
-          if (navigationType == NavigationType.ForwardAutomatically)
+          if (navigationActor == NavigationActor.Automatic)
           {
             _currentMediaDisplayedTime = Stopwatch.StartNew();
             _currentMediaTimeout = TimeSpan.FromSeconds(30);
@@ -270,7 +276,7 @@ namespace FamilyPicScreenSaver
 
     private void MediaPlayerController_EndOfVideoReached()
     {
-      Navigate(NavigationType.ForwardAutomatically);
+      Navigate(NavigationDirection.Forward, NavigationActor.Automatic);
     }
 
     private void MediaChangeTimerTick(object state)
@@ -279,7 +285,7 @@ namespace FamilyPicScreenSaver
       {
         if (_currentMediaDisplayedTime?.Elapsed > _currentMediaTimeout && !Paused)
         {
-          Navigate(NavigationType.ForwardAutomatically);
+          Navigate(NavigationDirection.Forward, NavigationActor.Automatic);
         }
       }
     }
@@ -288,7 +294,7 @@ namespace FamilyPicScreenSaver
     {
       lock (_currentLock)
       {
-        Navigate(NavigationType.ForwardManually);
+        Navigate(NavigationDirection.Forward, NavigationActor.Manual);
       }
     }
 
@@ -296,7 +302,7 @@ namespace FamilyPicScreenSaver
     {
       lock (_currentLock)
       {
-        Navigate(NavigationType.BackManually);
+        Navigate(NavigationDirection.Back, NavigationActor.Manual);
       }
     }
 
@@ -304,7 +310,7 @@ namespace FamilyPicScreenSaver
     {
       lock (_currentLock)
       {
-        Navigate(NavigationType.RandomManually);
+        Navigate(NavigationDirection.Random, NavigationActor.Manual);
       }
     }
 
