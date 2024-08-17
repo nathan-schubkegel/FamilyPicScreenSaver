@@ -15,12 +15,12 @@ namespace FamilyPicScreenSaver
     public SettingsForm()
     {
       InitializeComponent();
-      _pictureFolderPathsTextBox.Lines = Settings.PictureFolders.ToArray();
+      _pictureFolderPathsTextBox.Lines = Settings.LoadMediaFolders().ToArray();
     }
 
     private void okButton_Click(object sender, EventArgs e)
     {
-      Settings.SetPictureFolders(_pictureFolderPathsTextBox.Lines);
+      Settings.SaveMediaFolders(_pictureFolderPathsTextBox.Lines);
       Close();
     }
 
