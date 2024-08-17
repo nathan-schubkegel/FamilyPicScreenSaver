@@ -6,7 +6,6 @@ Please refer to <http://unlicense.org/>
 
 using Rope;
 using System;
-using System.Collections.Generic;
 
 namespace FamilyPicScreenSaver
 {
@@ -34,7 +33,8 @@ namespace FamilyPicScreenSaver
       return heuristic.Slice(0, sameLength) + perfect.Substring(sameLength);
     }
 
-    [ThreadStatic] private static Random _rando;
+    [ThreadStatic]
+    private static Random _rando;
 
     public static Rope<T> Randomize<T>(Rope<T> input) where T : IEquatable<T>
     {

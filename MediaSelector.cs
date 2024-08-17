@@ -11,6 +11,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
+using Rope;
+using Nito.Collections;
 
 namespace FamilyPicScreenSaver
 {
@@ -22,9 +24,9 @@ namespace FamilyPicScreenSaver
     private readonly System.Threading.Timer _pictureChangeTimer;
 
     private readonly object _currentLock = new object();
-    private readonly Stack<int> _previousIndexes = new();
-    private readonly Stack<int> _nextIndexes = new();
-    private int _lastObservedMediaCount;
+    private readonly Deque<int> _previousIndexes = new();
+    private readonly Deque<int> _nextIndexes = new();
+    private Rope<Rope<char>> _lastObservedMedia = Rope<Rope<char>>.Empty;
     private int _currentAutomaticAdvanceCount;
     private int? _currentMediaIndex;
     private string _currentFilePath;
@@ -95,13 +97,16 @@ namespace FamilyPicScreenSaver
           {
             case NavigationType.ForwardAutomatically:
             case NavigationType.ForwardManually:
-              _previousIndexes.Push(_currentMediaIndex.Value);
+              _previousIndexes.AddToBack(_currentMediaIndex.Value);
+              while (_previousIndexes.Count > 1000) _previousIndexes.RemoveFromFront();
               break;
             case NavigationType.BackManually:
-              _nextIndexes.Push(_currentMediaIndex.Value);
+              _nextIndexes.AddToBack(_currentMediaIndex.Value);
+              while (_nextIndexes.Count > 1000) _nextIndexes.RemoveFromFront();
               break;
             case NavigationType.RandomManually:
-              _previousIndexes.Push(_currentMediaIndex.Value);
+              _previousIndexes.AddToBack(_currentMediaIndex.Value);
+              while (_previousIndexes.Count > 1000) _previousIndexes.RemoveFromFront();
               break;
           }
         }
@@ -111,16 +116,16 @@ namespace FamilyPicScreenSaver
         {
           case NavigationType.ForwardAutomatically:
             // try to have some randomness while images are being found
-            if (_currentFilePath == MediaFinder.LoadingPicPath || _lastObservedMediaCount != media.Count)
+            if (_currentFilePath == MediaFinder.LoadingPicPath || _lastObservedMedia != media)
             {
               debugInfo.Append("random (loading or media count change)");
               _currentMediaIndex = GetRandomIndex();
-              _lastObservedMediaCount = media.Count;
+              _lastObservedMedia = media;
             }
             else if (_nextIndexes.Count > 0)
             {
               debugInfo.Append($"_nextIndexes (Count = {_nextIndexes.Count})");
-              _currentMediaIndex = _nextIndexes.Pop();
+              _currentMediaIndex = _nextIndexes.RemoveFromBack();
             }
             // pick a random new image every 10, so
             // 1.) reduce constant jarring changes in time period of images/videos shown
@@ -146,7 +151,7 @@ namespace FamilyPicScreenSaver
             if (_nextIndexes.Count > 0)
             {
               debugInfo.Append($"_nextIndexes (Count = {_nextIndexes.Count})");
-              _currentMediaIndex = _nextIndexes.Pop();
+              _currentMediaIndex = _nextIndexes.RemoveFromBack();
             }
             else if (_currentMediaIndex == null)
             {
@@ -164,7 +169,7 @@ namespace FamilyPicScreenSaver
             if (_previousIndexes.Count > 0)
             {
               debugInfo.Append($"_previousIndexes (Count = {_previousIndexes.Count})");
-              _currentMediaIndex = _previousIndexes.Pop();
+              _currentMediaIndex = _previousIndexes.RemoveFromBack();
             }
             else if (_currentMediaIndex == null)
             {
