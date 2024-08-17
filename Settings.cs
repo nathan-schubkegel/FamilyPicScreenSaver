@@ -6,7 +6,6 @@ Please refer to <http://unlicense.org/>
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using Rope;
@@ -27,9 +26,6 @@ namespace FamilyPicScreenSaver
 
     private static readonly string _enumeratedMediaFilesSettingFilePath = Path.Combine(
       _settingsFolderPath, "EnumeratedMediaFiles.txt");
-
-    private static readonly string _currentMediaIndexSettingFilePath = Path.Combine(
-      _settingsFolderPath, "CurrentMediaFileIndex.txt");
 
     public static List<string> LoadMediaFolders()
     {
@@ -179,48 +175,6 @@ namespace FamilyPicScreenSaver
             Directory.CreateDirectory(dirPath);
           }
           File.WriteAllLines(_enumeratedMediaFilesSettingFilePath, allMedia.Select(x => x.ToString()));
-        }
-      }
-      catch
-      {
-      }
-    }
-
-    public static long LoadCurrentMediaIndex()
-    {
-      long currentIndex = -1;
-      try
-      {
-        lock (_currentMediaIndexSettingFilePath)
-        {
-          if (File.Exists(_currentMediaIndexSettingFilePath))
-          {
-            var text = File.ReadAllText(_currentMediaIndexSettingFilePath);
-            currentIndex = long.Parse(text, CultureInfo.InvariantCulture);
-            currentIndex = Math.Max(-1, currentIndex);
-          }
-        }
-      }
-      catch
-      {
-      }
-      return currentIndex;
-    }
-
-    public static void SaveCurrentMediaIndex(long currentIndex)
-    {
-      try
-      {
-        lock (_currentMediaIndexSettingFilePath)
-        {
-          var dirPath = Path.GetDirectoryName(_currentMediaIndexSettingFilePath);
-          if (!Directory.Exists(dirPath))
-          {
-            Directory.CreateDirectory(dirPath);
-          }
-
-          File.WriteAllLines(_currentMediaIndexSettingFilePath,
-            [currentIndex.ToString(CultureInfo.InvariantCulture)]);
         }
       }
       catch
