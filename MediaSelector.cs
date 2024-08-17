@@ -7,7 +7,6 @@ Please refer to <http://unlicense.org/>
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,7 +20,7 @@ namespace FamilyPicScreenSaver
     private readonly MediaFinder _mediaFinder;
     private readonly MediaPlayerThreadedWrapper _mediaPlayerController;
     private readonly Random _random = new Random((int)(DateTime.UtcNow.Ticks % int.MaxValue));
-    private readonly System.Threading.Timer _pictureChangeTimer;
+    private readonly System.Threading.Timer _mediaChangeTimer;
 
     private readonly object _currentLock = new object();
     private readonly Deque<int> _previousIndexes = new();
@@ -31,8 +30,8 @@ namespace FamilyPicScreenSaver
     private int? _currentMediaIndex;
     private string _currentFilePath;
     private MediaType _currentMediaType;
-    private Stopwatch _currentPictureDisplayedTime;
-    private TimeSpan _currentPictureTimeout;
+    private Stopwatch _currentMediaDisplayedTime;
+    private TimeSpan _currentMediaTimeout;
     private string _debugInfo;
 
     public string DebugInfo { get { lock (_currentLock) return _debugInfo; } }
@@ -44,8 +43,8 @@ namespace FamilyPicScreenSaver
       _mediaPlayerController = new MediaPlayerThreadedWrapper(libVlc);
       _mediaPlayerController.EndOfVideoReached += MediaPlayerController_EndOfVideoReached;
       _mediaFinder = new MediaFinder();
-      _pictureChangeTimer = new System.Threading.Timer(PictureChangeTimerTick);
-      _pictureChangeTimer.Change(100, 100);
+      _mediaChangeTimer = new System.Threading.Timer(MediaChangeTimerTick);
+      _mediaChangeTimer.Change(100, 100);
 
       // get something displayed now
       Navigate(NavigationType.RandomManually);
@@ -219,13 +218,24 @@ namespace FamilyPicScreenSaver
           _paused = false;
           _mediaPlayerController.SetPaused(false);
           _mediaPlayerController.SetMuted(_muted);
-          _currentPictureDisplayedTime = null;
+
+          // when navigating automatically, just play 30 seconds of video
+          if (navigationType == NavigationType.ForwardAutomatically)
+          {
+            _currentMediaDisplayedTime = Stopwatch.StartNew();
+            _currentMediaTimeout = TimeSpan.FromSeconds(30);
+            _mediaPlayerController.SeekToRandomTimeWithAtLeastThisMuchTimeLeft(_currentMediaTimeout);
+          }
+          else
+          {
+            _currentMediaDisplayedTime = null;
+          }
         }
         else
         {
           _mediaPlayerController.Stop();
-          _currentPictureDisplayedTime = Stopwatch.StartNew();
-          _currentPictureTimeout = TimeSpan.FromSeconds(_currentFilePath == MediaFinder.LoadingPicPath ? 1 : 10);
+          _currentMediaDisplayedTime = Stopwatch.StartNew();
+          _currentMediaTimeout = TimeSpan.FromSeconds(_currentFilePath == MediaFinder.LoadingPicPath ? 1 : 10);
         }
 
         _debugInfo = debugInfo.ToString();
@@ -263,11 +273,11 @@ namespace FamilyPicScreenSaver
       Navigate(NavigationType.ForwardAutomatically);
     }
 
-    private void PictureChangeTimerTick(object state)
+    private void MediaChangeTimerTick(object state)
     {
       lock (_currentLock)
       {
-        if (_currentPictureDisplayedTime?.Elapsed > _currentPictureTimeout && !Paused)
+        if (_currentMediaDisplayedTime?.Elapsed > _currentMediaTimeout && !Paused)
         {
           Navigate(NavigationType.ForwardAutomatically);
         }
@@ -309,11 +319,11 @@ namespace FamilyPicScreenSaver
           _paused = value;
           if (value)
           {
-            _currentPictureDisplayedTime?.Stop();
+            _currentMediaDisplayedTime?.Stop();
           }
           else
           {
-            _currentPictureDisplayedTime?.Start();
+            _currentMediaDisplayedTime?.Start();
           }
           _mediaPlayerController.SetPaused(value);
         }

@@ -21,6 +21,7 @@ namespace FamilyPicScreenSaver
   {
     private readonly LibVLC _libVLC;
     private readonly MediaPlayer _mediaPlayer;
+    private readonly Random _random = new Random();
     private readonly Channel<Action> _commands = Channel.CreateUnbounded<Action>();
     
     public event Action EndOfVideoReached;
@@ -83,6 +84,34 @@ namespace FamilyPicScreenSaver
         {
           using var media = new Media(_libVLC, new Uri(filePath));
           _mediaPlayer.Play(media);
+        }
+      });
+    }
+
+    public void SeekToRandomTimeWithAtLeastThisMuchTimeLeft(TimeSpan timeLeft, int retryCount = 10)
+    {
+      _commands.Writer.TryWrite(() =>
+      {
+        lock (_mediaPlayer)
+        {
+          var timeTotal = TimeSpan.FromMilliseconds(_mediaPlayer.Length);
+
+          // zero seems to be the value for "the movie hasn't started yet and we don't know"
+          // so delay a little and try again, at most 10 times
+          if (timeTotal == TimeSpan.Zero && retryCount > 0)
+          {
+            Task.Delay(100).ContinueWith(t =>
+              SeekToRandomTimeWithAtLeastThisMuchTimeLeft(timeLeft, retryCount - 1));
+          }
+          else
+          {
+            var viableTimes = (int)(timeTotal - timeLeft).TotalMilliseconds;
+            if (viableTimes > 0)
+            {
+              var randoTime = TimeSpan.FromMilliseconds(_random.Next(viableTimes));
+              _mediaPlayer.SeekTo(randoTime);
+            }
+          }
         }
       });
     }
