@@ -6,7 +6,6 @@ Please refer to <http://unlicense.org/>
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -35,34 +34,36 @@ namespace FamilyPicScreenSaver
 
     private void Scan()
     {
-      var fileWriteTimer = Stopwatch.StartNew();
-      Rope<char> lastPath = Rope<char>.Empty;
-
-      // pick up from where we previously left off
-      HashSet<string> enumeratedDirectories = Settings.LoadEnumeratedMediaFolders();
-      _media = new RopeHolder { Value = _media.Value + Settings.LoadEnumeratedMediaFiles() };
-
+      Rope<Rope<char>> initialMedia = Settings.LoadEnumeratedMediaFiles();
+      TimeSpan? initialMediaAge = Settings.LoadAgeOfEnumeratedMediaFiles();
+      List<string> initialEnumeratedMediaFolders = Settings.LoadEnumeratedMediaFolders();
       List<string> rootDirectories = Settings.LoadMediaFolders();
-      foreach (var dir in rootDirectories)
-      {
-        // NOTE: doing this the hard way (rather than using SearchOption.AllDirectories)
-        // because when it encounters a folder it doesn't have access to, I want it to keep chugging
-        Stack<IPushedAction> stack = new();
-        stack.Push(new DirToEnumerate { Path = dir });
-        while (stack.Count > 0)
-        {
-          var next = stack.Pop();
-          if (next is DirToEnumerate nextDir)
-          {
-            if (enumeratedDirectories.Contains(nextDir.Path))
-            {
-              continue;
-            }
 
-            Rope<Rope<char>> newFiles = Rope<Rope<char>>.Empty;
+      // does it look like we don't need to rescan?
+      if (rootDirectories.SequenceEqual(initialEnumeratedMediaFolders) &&
+        !initialMedia.IsEmpty &&
+        initialMediaAge < TimeSpan.FromDays(5))
+      {
+        // ok this is good
+        _media = new RopeHolder { Value = initialMedia };
+      }
+      else // re-scan
+      {
+        var filesGroupedByFolder = Rope<Rope<Rope<char>>>.Empty;
+        Rope<char> lastPath = Rope<char>.Empty;
+        foreach (var rootDir in rootDirectories)
+        {
+          // NOTE: doing this the hard way (rather than using SearchOption.AllDirectories)
+          // because when it encounters a folder it doesn't have access to, I want it to keep chugging
+          Stack<string> stack = new();
+          stack.Push(rootDir);
+          while (stack.Count > 0)
+          {
+            var next = stack.Pop();
+            var newFiles = Rope<Rope<char>>.Empty;
             try
             {
-              newFiles = Directory.EnumerateFiles(nextDir.Path)
+              newFiles = Directory.EnumerateFiles(next)
                 .Where(file => FilePathIsProbablyPicture(file) || FilePathIsProbablyVideo(file))
                 .Select(x =>
                 {
@@ -79,19 +80,16 @@ namespace FamilyPicScreenSaver
 
             if (!newFiles.IsEmpty)
             {
-              _media = new RopeHolder
-              {
-                Value = _media.Value + newFiles
-              };
+              filesGroupedByFolder += newFiles;
+              _media = new RopeHolder { Value = _media.Value + newFiles };
             }
 
             try
             {
-              string[] dirs = Directory.GetDirectories(nextDir.Path);
-              stack.Push(new DirToMarkEnumerated { Path = nextDir.Path, ChildPathsToRemove = dirs.ToList() });
+              string[] dirs = Directory.GetDirectories(next);
               foreach (var durrr in dirs)
               {
-                stack.Push(new DirToEnumerate { Path = durrr });
+                stack.Push(durrr);
               }
             }
             catch // usually it's something like "don't have access to the directory"
@@ -99,59 +97,26 @@ namespace FamilyPicScreenSaver
               // ok whatever
             }
           }
-          else if (next is DirToMarkEnumerated doneDir)
-          {
-            enumeratedDirectories.Add(doneDir.Path);
-            doneDir.ChildPathsToRemove?.ForEach(x => enumeratedDirectories.Remove(x));
-
-            if (fileWriteTimer.ElapsedMilliseconds > 2000)
-            {
-              // prevent application shutdown until these files are done being written
-              Program.PreventExitDuring(() =>
-              {
-                Settings.SaveEnumeratedMediaFolders(enumeratedDirectories);
-                Settings.SaveEnumeratedMediaFiles(_media.Value);
-              });
-              fileWriteTimer.Restart();
-            }
-          }
         }
-      }
 
-      if (_media.Value.Count == 1)
-      {
-        _media = new RopeHolder { Value = Rope<Rope<char>>.Empty.Add(BrokenPicPath) };
-      }
-      else
-      {
-        // remove loading pic, put last pic there (so all other indexes are unchanged
-        // so forward/backward history remains largely unbroken)
-        var last = _media.Value.Last();
-        _media = new RopeHolder
+        if (filesGroupedByFolder.IsEmpty)
         {
-          Value = _media.Value.SetItem(0, last).RemoveAt(_media.Value.Count - 1)
-        };
+          _media = new RopeHolder { Value = Rope<Rope<char>>.Empty.Add(BrokenPicPath) };
+        }
+        else
+        {
+          // randomize by folder
+          var randomized = RopeUtils.Randomize(filesGroupedByFolder);
+          _media = new RopeHolder { Value = RopeUtils.SelectMany(randomized) };
+        }
+
+        // prevent application shutdown until these files are done being written
+        Program.PreventExitDuring(() =>
+        {
+          Settings.SaveEnumeratedMediaFolders(rootDirectories);
+          Settings.SaveEnumeratedMediaFiles(_media.Value);
+        });
       }
-
-      // prevent application shutdown until these files are done being written
-      Program.PreventExitDuring(() =>
-      {
-        Settings.SaveEnumeratedMediaFolders(new HashSet<string>(rootDirectories));
-        Settings.SaveEnumeratedMediaFiles(_media.Value);
-      });
-    }
-
-    private interface IPushedAction { }
-
-    private class DirToEnumerate : IPushedAction
-    {
-      public string Path;
-    }
-
-    private class DirToMarkEnumerated : IPushedAction
-    {
-      public string Path;
-      public List<string> ChildPathsToRemove;
     }
 
     public static bool FilePathIsProbablyVideo(string file)

@@ -79,7 +79,7 @@ namespace FamilyPicScreenSaver
       }
     }
 
-    public static HashSet<string> LoadEnumeratedMediaFolders()
+    public static List<string> LoadEnumeratedMediaFolders()
     {
       try
       {
@@ -87,20 +87,20 @@ namespace FamilyPicScreenSaver
         {
           if (File.Exists(_enumeratedMediaFoldersSettingFilePath))
           {
-            return new HashSet<string>(
-              File.ReadLines(_enumeratedMediaFoldersSettingFilePath)
+            return File.ReadLines(_enumeratedMediaFoldersSettingFilePath)
               .Select(x => x?.Trim())
-              .Where(x => !string.IsNullOrEmpty(x)));
+              .Where(x => !string.IsNullOrEmpty(x))
+              .ToList();
           }
         }
       }
       catch
       {
       }
-      return new HashSet<string>();
+      return new();
     }
 
-    public static void SaveEnumeratedMediaFolders(HashSet<string> folders)
+    public static void SaveEnumeratedMediaFolders(List<string> folders)
     {
       try
       {
@@ -117,6 +117,26 @@ namespace FamilyPicScreenSaver
       catch
       {
       }
+    }
+
+    public static TimeSpan? LoadAgeOfEnumeratedMediaFiles()
+    {
+      try
+      {
+        if (File.Exists(_enumeratedMediaFilesSettingFilePath))
+        {
+          var fi = new FileInfo(_enumeratedMediaFilesSettingFilePath);
+          var time = fi.LastWriteTime;
+          var now = DateTime.Now;
+          if (now > time)
+          {
+            return now - time;
+          }
+          return TimeSpan.Zero;
+        }
+      }
+      catch { }
+      return null;
     }
 
     public static Rope<Rope<char>> LoadEnumeratedMediaFiles()
