@@ -14,6 +14,43 @@ namespace FamilyPicScreenSaver
 {
   static class Program
   {
+    private static readonly object _exitPreventionLock = new();
+    private static int _exitPreventionCount;
+    private static bool _exitDeferred;
+
+    public static void Exit()
+    {
+      lock (_exitPreventionLock)
+      {
+        if (_exitPreventionCount > 0)
+        {
+          _exitDeferred = true;
+          return;
+        }
+        Environment.Exit(0);
+      }
+    }
+
+    public static void PreventExitDuring(Action a)
+    {
+      lock (_exitPreventionLock)
+      {
+        _exitPreventionCount++;
+        try
+        {
+          a();
+        }
+        finally
+        {
+          _exitPreventionCount--;
+          if (_exitDeferred)
+          {
+            Environment.Exit(0);
+          }
+        }
+      }
+    }
+
     [STAThread]
     static void Main(string[] args)
     {
@@ -54,6 +91,10 @@ namespace FamilyPicScreenSaver
       catch (Exception ex)
       {
         MessageBox.Show($"Error in FamilyPicScreenSaver: {ex}");
+      }
+      finally
+      {
+        Exit();
       }
     }
   }

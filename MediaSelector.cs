@@ -41,7 +41,7 @@ namespace FamilyPicScreenSaver
     {
       _mediaPlayerController = new MediaPlayerThreadedWrapper(libVlc);
       _mediaPlayerController.EndOfVideoReached += MediaPlayerController_EndOfVideoReached;
-      _mediaFinder = new MediaFinder(Settings.LoadMediaFolders());
+      _mediaFinder = new MediaFinder();
       _pictureChangeTimer = new System.Threading.Timer(PictureChangeTimerTick);
       _pictureChangeTimer.Change(100, 100);
 
@@ -202,7 +202,7 @@ namespace FamilyPicScreenSaver
         // MediaFinder guarantees that media always has at least 1 item, so 0 is safe
         debugInfo.Append($", index={_currentMediaIndex}");
 
-        _currentFilePath = media[_currentMediaIndex.Value];
+        _currentFilePath = media[_currentMediaIndex.Value].ToString();
         _currentMediaType = MediaFinder.FilePathIsProbablyVideo(_currentFilePath) ? MediaType.Video : MediaType.Picture;
 
         debugInfo.AppendLine($", {_currentMediaType}");

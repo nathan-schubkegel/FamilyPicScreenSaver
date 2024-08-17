@@ -20,7 +20,7 @@ namespace FamilyPicScreenSaver
 
     private void okButton_Click(object sender, EventArgs e)
     {
-      Settings.SaveMediaFolders(_pictureFolderPathsTextBox.Lines);
+      Settings.SaveMediaFolders(_pictureFolderPathsTextBox.Lines.ToList());
       Close();
     }
 

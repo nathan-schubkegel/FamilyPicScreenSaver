@@ -1,8 +1,12 @@
 {
   "profiles": {
-    "FamilyPicScreenSaver": {
+    "FamilyPicScreenSaver Fullscreen": {
       "commandName": "Project",
       "commandLineArgs": "/s"
+    },
+    "FamilyPicScreenSaver Settings": {
+      "commandName": "Project",
+      "commandLineArgs": "/c"
     }
   }
 }

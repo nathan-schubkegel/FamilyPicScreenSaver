@@ -31,7 +31,7 @@ namespace FamilyPicScreenSaver
     private static readonly string _currentMediaIndexSettingFilePath = Path.Combine(
       _settingsFolderPath, "CurrentMediaFileIndex.txt");
 
-    public static IEnumerable<string> LoadMediaFolders()
+    public static List<string> LoadMediaFolders()
     {
       try
       {
@@ -42,7 +42,8 @@ namespace FamilyPicScreenSaver
             return File.ReadAllLines(_mediaFoldersSettingFilePath)
               .Select(x => x?.Trim())
               .Where(x => !string.IsNullOrEmpty(x))
-              .Distinct(StringComparer.Ordinal);
+              .Distinct(StringComparer.Ordinal)
+              .ToList();
           }
         }
       }
@@ -59,7 +60,7 @@ namespace FamilyPicScreenSaver
       ];
     }
 
-    public static void SaveMediaFolders(IEnumerable<string> folders)
+    public static void SaveMediaFolders(List<string> folders)
     {
       try
       {
@@ -78,7 +79,7 @@ namespace FamilyPicScreenSaver
       }
     }
 
-    public static Rope<string> LoadEnumeratedMediaFolders()
+    public static HashSet<string> LoadEnumeratedMediaFolders()
     {
       try
       {
@@ -86,20 +87,20 @@ namespace FamilyPicScreenSaver
         {
           if (File.Exists(_enumeratedMediaFoldersSettingFilePath))
           {
-            return File.ReadLines(_enumeratedMediaFoldersSettingFilePath)
+            return new HashSet<string>(
+              File.ReadLines(_enumeratedMediaFoldersSettingFilePath)
               .Select(x => x?.Trim())
-              .Where(x => !string.IsNullOrEmpty(x))
-              .ToRope();
+              .Where(x => !string.IsNullOrEmpty(x)));
           }
         }
       }
       catch
       {
       }
-      return Rope<string>.Empty;
+      return new HashSet<string>();
     }
 
-    public static void SaveEnumeratedMediaFolders(Rope<string> folders)
+    public static void SaveEnumeratedMediaFolders(HashSet<string> folders)
     {
       try
       {
@@ -118,7 +119,7 @@ namespace FamilyPicScreenSaver
       }
     }
 
-    public static Rope<string> LoadEnumeratedMediaFiles()
+    public static Rope<Rope<char>> LoadEnumeratedMediaFiles()
     {
       try
       {
@@ -126,9 +127,16 @@ namespace FamilyPicScreenSaver
         {
           if (File.Exists(_enumeratedMediaFilesSettingFilePath))
           {
+            Rope<char> lastPath = Rope<char>.Empty;
             return File.ReadLines(_enumeratedMediaFilesSettingFilePath)
               .Select(x => x?.Trim())
               .Where(x => !string.IsNullOrEmpty(x))
+              .Select(x =>
+              {
+                var result = RopeUtils.HeuristicToPerfect(lastPath, x);
+                lastPath = result;
+                return result;
+              })
               .ToRope();
           }
         }
@@ -136,10 +144,10 @@ namespace FamilyPicScreenSaver
       catch
       {
       }
-      return Rope<string>.Empty;
+      return Rope<Rope<char>>.Empty;
     }
 
-    public static void SaveEnumeratedMediaFiles(Rope<string> allMedia)
+    public static void SaveEnumeratedMediaFiles(Rope<Rope<char>> allMedia)
     {
       try
       {
@@ -150,7 +158,7 @@ namespace FamilyPicScreenSaver
           {
             Directory.CreateDirectory(dirPath);
           }
-          File.WriteAllLines(_enumeratedMediaFilesSettingFilePath, allMedia);
+          File.WriteAllLines(_enumeratedMediaFilesSettingFilePath, allMedia.Select(x => x.ToString()));
         }
       }
       catch
