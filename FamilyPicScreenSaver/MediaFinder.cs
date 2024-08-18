@@ -27,9 +27,14 @@ namespace FamilyPicScreenSaver
 
     public Rope<Rope<char>> Media => _media.Value;
 
+    private readonly object _purgeTaskStartLock = new();
+    private Task _scanTask;
+    private Task _purgeTask;
+
     public MediaFinder()
     {
-      Task.Run(Scan);
+      _scanTask = Task.Run(Scan);
+      _purgeTask = Task.CompletedTask;
     }
 
     private void Scan()
@@ -116,6 +121,51 @@ namespace FamilyPicScreenSaver
           Settings.SaveEnumeratedMediaFolders(rootDirectories);
           Settings.SaveEnumeratedMediaFiles(_media.Value);
         });
+      }
+    }
+
+    public void PurgeMediaThatDoesntExist()
+    {
+      lock (_purgeTaskStartLock)
+      {
+        if (_scanTask.IsCompleted && _purgeTask.IsCompleted)
+        {
+          _purgeTask = Task.Run(Purge);
+        }
+      }
+    }
+
+    private void Purge()
+    {
+      // the best case is the files are only temporarily unavailable
+      // (I link to files on a network drive, and sometimes the network computer isn't on)
+      // so if any root media directories don't exist, then remove all media from those directories
+      foreach (var rootDir in Settings.LoadMediaFolders())
+      {
+        bool exists = false;
+        try
+        {
+          exists = Directory.Exists(rootDir);
+        }
+        catch { }
+        if (!exists)
+        {
+          var newMedia = _media.Value;
+          for (int i = newMedia.Count - 1; i >= 0; i--)
+          {
+            // this isn't perfect. Would be tricked if you had 2 root dirs named "cat" and "cats"
+            // but meh it's good enough for me.
+            if (_media.Value[i].StartsWith(rootDir))
+            {
+              newMedia = newMedia.RemoveAt(i);
+            }
+          }
+          if (newMedia.Count == 0)
+          {
+            newMedia = newMedia.Add(MediaFinder.BrokenPicPath);
+          }
+          _media = new RopeHolder { Value = newMedia };
+        }
       }
     }
 

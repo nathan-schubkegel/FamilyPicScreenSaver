@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Rope;
 using Nito.Collections;
+using System.IO;
 
 namespace FamilyPicScreenSaver
 {
@@ -218,6 +219,14 @@ namespace FamilyPicScreenSaver
         debugInfo.AppendLine($", {_currentMediaType}");
         debugInfo.Append(_currentFilePath);
 
+        var fileExists = File.Exists(_currentFilePath);
+        if (!fileExists)
+        {
+          // start some async work to eliminate non-existing files
+          _mediaFinder.PurgeMediaThatDoesntExist();
+          debugInfo.Append(" (file does not exist!)");
+        }
+        
         if (_currentMediaType == MediaType.Video)
         {
           _mediaPlayerController.Play(_currentFilePath);

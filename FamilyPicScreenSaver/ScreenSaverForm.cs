@@ -9,6 +9,7 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using System.Diagnostics;
+using System.IO;
 
 namespace FamilyPicScreenSaver
 {
@@ -94,7 +95,15 @@ namespace FamilyPicScreenSaver
         try
         {
           var currentMedia = _mediaSelector.GetCurrentMedia();
-          if (currentMedia.MediaType == MediaType.Video)
+
+          string alternateDebugInfo = null;
+          if (!File.Exists(currentMedia.FilePath))
+          {
+            alternateDebugInfo = "File does not exist: " + currentMedia.FilePath;
+            _pictureBox1.Visible = false;
+            _videoView1.Visible = false;
+          }
+          else if (currentMedia.MediaType == MediaType.Video)
           {
             _pictureBox1.Visible = false;
             _videoView1.Visible = true;
@@ -107,9 +116,23 @@ namespace FamilyPicScreenSaver
             _pictureBox1.Image = Image.FromFile(currentMedia.FilePath);
             _pictureBox1.Visible = true;
           }
-          _debugInfoLabel.Text = _mediaSelector.DebugInfo;
-          _debugInfoLabel.Visible = _showDebugInfo;
-          _debugInfoLabel.BringToFront();
+
+          if (_showDebugInfo)
+          {
+            _debugInfoLabel.Text = _mediaSelector.DebugInfo;
+            _debugInfoLabel.BringToFront();
+            _debugInfoLabel.Visible = true;
+          }
+          else if (!string.IsNullOrEmpty(alternateDebugInfo))
+          {
+            _debugInfoLabel.Text = alternateDebugInfo;
+            _debugInfoLabel.BringToFront();
+            _debugInfoLabel.Visible = true;
+          }
+          else
+          {
+            _debugInfoLabel.Visible = false;
+          }  
         }
         catch (Exception ex)
         {
