@@ -6,5 +6,9 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>FamilyPicScreenSaver</AssemblyName>
   </PropertyGroup>
+  
+  <ItemGroup>
+    <Content Include="FamilyPicScreenSaverLaunchCommand.txt" CopyToOutputDirectory="PreserveNewest"/>
+  </ItemGroup>
 
 </Project>

@@ -7,6 +7,8 @@ Please refer to <http://unlicense.org/>
 using System;
 using System.Windows.Forms;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 
 namespace Launcher
 {
@@ -17,8 +19,12 @@ namespace Launcher
     {
       try
       {
-        var proc = Process.Start(@"C:\Program Files\FamilyPicScreenSaver\FamilyPicScreenSaver.exe",
-          string.Join(" ", args));
+        var launchCommand = File.ReadAllLines(Path.Combine(
+          AppDomain.CurrentDomain.BaseDirectory, 
+          "FamilyPicScreenSaverLaunchCommand.txt"
+        )).First();
+
+        var proc = Process.Start(launchCommand);
         proc.WaitForExit();
         return proc.ExitCode;
       }
