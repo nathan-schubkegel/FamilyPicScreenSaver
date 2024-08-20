@@ -5,6 +5,7 @@
     <TargetFramework>net462</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>FamilyPicScreenSaver</AssemblyName>
+    <ApplicationIcon>../icon.ico</ApplicationIcon>
   </PropertyGroup>
   
   <ItemGroup>
