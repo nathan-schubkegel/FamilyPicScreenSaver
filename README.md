@@ -1,5 +1,5 @@
-# FamilyPicScreenSaver
-A screen saver for windows that shows family pictures and videos
+# Family Pic Screen Saver
+A screen saver for windows that shows family pictures and videos.
 
 How to develop
 -----
@@ -7,14 +7,9 @@ How to develop
 
 How to install on your grandma's computer
 -----
-1. In folder `FamilyPicScreenSaver` run `dotnet publish --self-contained -r win-x64`
-2. Copy and rename folder `FamilyPicScreenSaver\bin\Release\net8.0-windows\win-x64\publish` to somewhere like `C:\Program Files\FamilyPicScreenSaver`
-3. Build `Launcher\Launcher.csproj` (could use `dotnet publish` or just build `FamilyPicScreenSaver.sln`)
-4. Copy and rename file `Launcher\bin\Debug\net462\FamilyPicScreenSaver.exe` to `C:\Windows\System32\FamilyPicScreenSaver.scr`
-5. Copy file `Launcher\bin\Debug\net462\FamilyPicScreenSaverLaunchCommand.txt` to `C:\Windows\System32`
-6. Edit `C:\Windows\System32\FamilyPicScreenSaverLaunchCommand.txt` so the first line is the full path to the exe you copied in step 2
-7. At this point, "FamilyPicScreenSaver" should show up in Windows's screen saver dialog.
-
+1. Download and install Inno Setup 6 from https://jrsoftware.org/isinfo.php (version 6.3.3 is currently used)
+2. Open a command prompt, run `powershell ./Installer/buildInstaller.ps1`
+3. It produces a self-installing executable at `./Installer/build/FamilyPicScreenSaverInstaller.exe`
 
 Licensing
 ---------

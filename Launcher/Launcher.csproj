@@ -2,14 +2,9 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net462</TargetFramework>
+    <TargetFramework>net46</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
-    <AssemblyName>FamilyPicScreenSaver</AssemblyName>
     <ApplicationIcon>../icon.ico</ApplicationIcon>
   </PropertyGroup>
-  
-  <ItemGroup>
-    <Content Include="FamilyPicScreenSaverLaunchCommand.txt" CopyToOutputDirectory="PreserveNewest"/>
-  </ItemGroup>
 
 </Project>
