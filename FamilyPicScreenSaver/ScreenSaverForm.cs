@@ -193,6 +193,11 @@ namespace FamilyPicScreenSaver
       {
         _mediaSelector.Random();
       }
+      else if (e.KeyCode == Keys.Down)
+      {
+        // do nothing; this button doesn't do anything, but my daughter kept pressing it
+        // and was sad that it made the screen saver turn off
+      }
       else if (e.KeyCode == Keys.M)
       {
         _mediaSelector.Muted = !_mediaSelector.Muted;
