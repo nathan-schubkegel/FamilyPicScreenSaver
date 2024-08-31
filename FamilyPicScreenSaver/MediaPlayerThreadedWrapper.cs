@@ -7,6 +7,7 @@ Please refer to <http://unlicense.org/>
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
 using System;
+using System.Security.Policy;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
@@ -59,14 +60,29 @@ namespace FamilyPicScreenSaver
 
     private void MediaPlayer_Playing(object sender, EventArgs e)
     {
-      Task.Run(() =>
+      Task.Run(async () =>
       {
-        // Changing the audio track seems to only work when the media is playing,
-        // and we WERE doing that for mute (but now we're not... it didn't reliably work),
-        // so just always re-apply mute when we start playing
-        lock (_mediaPlayer)
+        // Changing the audio track and muting seem to only work reliably when the media is playing
+        // so always re-apply mute when we start playing
+        // and do it another 10 times because sometimes it's still not working 100% of the time on my wife's PC
+        string originalMrl = null;
+        for (int i = 0; i < 10; i++)
         {
-          _mediaPlayer.Mute = _muted;
+          lock (_mediaPlayer)
+          {
+            // stop looping if the media changes
+            var newMrl = _mediaPlayer.Media?.Mrl ?? "";
+            if (originalMrl == null)
+            {
+              originalMrl = newMrl;
+            }
+            else if (originalMrl != newMrl)
+            {
+              break;
+            }
+            _mediaPlayer.Mute = _muted;
+          }
+          await Task.Delay(100);
         }
       });
     }
