@@ -28,6 +28,7 @@ namespace FamilyPicScreenSaver
     private readonly Deque<int> _nextIndexes = new();
     private Rope<Rope<char>> _lastObservedMedia = Rope<Rope<char>>.Empty;
     private int _currentAutomaticAdvanceCount;
+    private bool _hasHadUserInteraction;
     private int? _currentMediaIndex;
     private string _currentFilePath;
     private MediaType _currentMediaType;
@@ -235,7 +236,7 @@ namespace FamilyPicScreenSaver
           _mediaPlayerController.SetMuted(_muted);
 
           // when navigating automatically, just play 30 seconds of video
-          if (navigationActor == NavigationActor.Automatic)
+          if (navigationActor == NavigationActor.Automatic && !_hasHadUserInteraction)
           {
             _currentMediaDisplayedTime = Stopwatch.StartNew();
             _currentMediaTimeout = TimeSpan.FromSeconds(30);
@@ -303,6 +304,7 @@ namespace FamilyPicScreenSaver
     {
       lock (_currentLock)
       {
+        _hasHadUserInteraction = true;
         Navigate(NavigationDirection.Forward, NavigationActor.Manual);
       }
     }
@@ -311,6 +313,7 @@ namespace FamilyPicScreenSaver
     {
       lock (_currentLock)
       {
+        _hasHadUserInteraction = true;
         Navigate(NavigationDirection.Back, NavigationActor.Manual);
       }
     }
@@ -319,6 +322,7 @@ namespace FamilyPicScreenSaver
     {
       lock (_currentLock)
       {
+        _hasHadUserInteraction = true;
         Navigate(NavigationDirection.Random, NavigationActor.Manual);
       }
     }
@@ -330,6 +334,7 @@ namespace FamilyPicScreenSaver
       {
         lock (_currentLock)
         {
+          _hasHadUserInteraction = true;
           _currentAutomaticAdvanceCount = 0;
           _paused = value;
           if (value)
@@ -351,6 +356,7 @@ namespace FamilyPicScreenSaver
       get => _muted;
       set
       {
+          _hasHadUserInteraction = true;
         lock (_currentLock)
         {
           _currentAutomaticAdvanceCount = 0;
