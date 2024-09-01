@@ -27,3 +27,9 @@ $issPath = "$PSScriptRoot\installerScript.iss"
 Write-Host "Running Inno Setup Compiler..."
 &"C:\Program Files (x86)\Inno Setup 6\iscc.exe" $issPath
 if ($LASTEXITCODE -ne 0) { throw "failed to produce installer"; }
+
+Write-Host "Renaming installer so version is included in name..."
+Rename-Item -Path "$PSScriptRoot\build\FamilyPicScreenSaverInstaller.exe" -NewName "FamilyPicScreenSaverInstaller-v$version.exe"
+
+Write-Host "Done."
+exit 0
