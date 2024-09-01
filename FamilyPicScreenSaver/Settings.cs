@@ -16,7 +16,7 @@ namespace FamilyPicScreenSaver
   {
     private static readonly string _settingsFolderPath = Path.Combine(
       Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-      "FamilyPicScreenSaver");
+      "Family Pic Screen Saver");
 
     private static readonly string _mediaFoldersSettingFilePath = Path.Combine(
       _settingsFolderPath, "MediaFolders.txt");
