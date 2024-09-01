@@ -135,11 +135,12 @@ namespace FamilyPicScreenSaver
       Controls.Add(_label3);
       Controls.Add(_label2);
       Controls.Add(_label1);
-      FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;
       Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
       MaximizeBox = false;
+      MinimizeBox = false;
       Name = "SettingsForm";
       Text = "Screen Saver Settings";
+      Load += SettingsForm_Load;
       ResumeLayout(false);
       PerformLayout();
     }

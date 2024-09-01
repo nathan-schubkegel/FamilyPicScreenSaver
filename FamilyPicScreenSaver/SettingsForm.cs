@@ -6,7 +6,9 @@ Please refer to <http://unlicense.org/>
 
 using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using System.Windows.Forms;
 
 namespace FamilyPicScreenSaver
@@ -56,6 +58,11 @@ namespace FamilyPicScreenSaver
       {
         MessageBox.Show("Unable to launch browser window... I guess you can copy paste the link text manually eh?");
       }
+    }
+
+    private void SettingsForm_Load(object sender, EventArgs e)
+    {
+      Icon = Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
     }
   }
 }

@@ -3,7 +3,7 @@
 ; AppName is displayed throughout the Setup program and uninstaller in window titles, 
 ; wizard pages, and dialog boxes.
 AppName=Family Pic Screen Saver
-AppVersion=1.1.1
+AppVersion=1.2.2
 
 ; Minimum windows version = any windows 10
 MinVersion=10
