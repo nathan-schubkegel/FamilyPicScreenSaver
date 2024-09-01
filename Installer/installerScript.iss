@@ -21,7 +21,8 @@ AppPublisherURL=https://github.com/nathan-schubkegel/FamilyPicScreenSaver
 AppCopyright=This is free and unencumbered software released into the public domain.
 
 ; This is not used for display anywhere; it impacts uninstall logs and Uninstall registry key
-; but you should try to keep it the same across all installes for one program
+; but you should try to keep it the same across all versions of one program
+; or else in the control panel it can look like there are multiple of your app installed!
 AppId=FamilyPicScreenSaver-164A6ABC-9D74-4279-B479-E1BB2E6EEC05
 
 ; Determines files Setup will check for being in use before uninstalling
@@ -34,6 +35,7 @@ DefaultDirName={autopf}\Family Pic Screen Saver
 DefaultGroupName=Family Pic Screen Saver
 
 SetupIconFile=..\icon.ico
+UninstallDisplayIcon={uninstallexe}
 
 WizardStyle=modern
 DisableProgramGroupPage=yes
