@@ -41,7 +41,8 @@ WizardStyle=modern
 DisableProgramGroupPage=yes
 OutputDir=build
 OutputBaseFilename=FamilyPicScreenSaverInstaller
-LicenseFile=..\LICENSE
+InfoBeforeFile=..\LICENSE
+DisableReadyPage=yes
 
 [Files]
 ; {sys} the system32 directory
