@@ -28,29 +28,30 @@ namespace FamilyPicScreenSaver
       _cancelButton = new System.Windows.Forms.Button();
       _addButton = new System.Windows.Forms.Button();
       _pictureFolderPathsTextBox = new System.Windows.Forms.RichTextBox();
+      linkLabel1 = new System.Windows.Forms.LinkLabel();
       SuspendLayout();
       // 
       // _label1
       // 
       _label1.AutoSize = true;
-      _label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+      _label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 15.75F);
       _label1.ForeColor = System.Drawing.Color.Black;
-      _label1.Location = new System.Drawing.Point(13, 9);
+      _label1.Location = new System.Drawing.Point(10, 9);
       _label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
       _label1.Name = "_label1";
-      _label1.Size = new System.Drawing.Size(258, 25);
+      _label1.Size = new System.Drawing.Size(247, 25);
       _label1.TabIndex = 1;
-      _label1.Text = "Family Pics Screen Saver";
+      _label1.Text = "Family Pic Screen Saver";
       // 
       // _label2
       // 
       _label2.AutoSize = true;
-      _label2.Location = new System.Drawing.Point(13, 34);
+      _label2.Location = new System.Drawing.Point(267, 17);
       _label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
       _label2.Name = "_label2";
-      _label2.Size = new System.Drawing.Size(254, 15);
+      _label2.Size = new System.Drawing.Size(126, 15);
       _label2.TabIndex = 2;
-      _label2.Text = "By Daddy Schubkegel (cool guy extraordinaire)";
+      _label2.Text = "By Nathan Schubkegel";
       // 
       // _label3
       // 
@@ -109,12 +110,24 @@ namespace FamilyPicScreenSaver
       _pictureFolderPathsTextBox.TabIndex = 4;
       _pictureFolderPathsTextBox.Text = "";
       // 
+      // linkLabel1
+      // 
+      linkLabel1.AutoSize = true;
+      linkLabel1.Location = new System.Drawing.Point(13, 34);
+      linkLabel1.Name = "linkLabel1";
+      linkLabel1.Size = new System.Drawing.Size(335, 15);
+      linkLabel1.TabIndex = 5;
+      linkLabel1.TabStop = true;
+      linkLabel1.Text = "https://github.com/nathan-schubkegel/FamilyPicScreenSaver";
+      linkLabel1.LinkClicked += linkLabel1_LinkClicked;
+      // 
       // SettingsForm
       // 
       AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
       AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
       CancelButton = _cancelButton;
       ClientSize = new System.Drawing.Size(603, 246);
+      Controls.Add(linkLabel1);
       Controls.Add(_pictureFolderPathsTextBox);
       Controls.Add(_addButton);
       Controls.Add(_cancelButton);
@@ -138,5 +151,6 @@ namespace FamilyPicScreenSaver
     private System.Windows.Forms.Button _cancelButton;
     private System.Windows.Forms.Button _addButton;
     private System.Windows.Forms.RichTextBox _pictureFolderPathsTextBox;
+    private System.Windows.Forms.LinkLabel linkLabel1;
   }
 }

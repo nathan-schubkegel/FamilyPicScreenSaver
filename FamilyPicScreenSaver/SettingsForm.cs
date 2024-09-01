@@ -5,6 +5,7 @@ Please refer to <http://unlicense.org/>
 */
 
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -39,6 +40,13 @@ namespace FamilyPicScreenSaver
           .Concat(new[] { dialog.SelectedPath })
           .Where(x => !string.IsNullOrWhiteSpace(x))
           .ToArray();
+      }
+    }
+
+    private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+    {
+      using (Process.Start(((LinkLabel)sender).Text))
+      {
       }
     }
   }
