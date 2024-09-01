@@ -56,7 +56,6 @@ Name: "{group}\Family Pic Screen Saver Settings"; Filename: "{app}\FamilyPicScre
 
 [INI]
 Filename: "{commonappdata}\Family Pic Screen Saver\LauncherSettings.ini"; Section: "InstallSettings"; Key: "LaunchFilePath"; String: {app}\FamilyPicScreenSaver.exe
-Filename: "{commonappdata}\Family Pic Screen Saver\LauncherSettings.ini"; Section: "InstallSettings"; Key: "LaunchArguments"; String: /s
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{commonappdata}\Family Pic Screen Saver"

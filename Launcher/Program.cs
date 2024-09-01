@@ -29,11 +29,9 @@ namespace Launcher
           .First(x => x.StartsWith("LaunchFilePath="))
           .Substring("LaunchFilePath=".Length);
 
-        var launchArguments = lines
-          .First(x => x.StartsWith("LaunchArguments="))
-          .Substring("LaunchArguments=".Length);
-
-        var proc = Process.Start(launchFilePath, launchArguments);
+        var argumentsLine = string.Join(" ", args.Select(
+          x => $"\"{x.Replace("\\", "\\\\").Replace("\"", "\\\"")}\""));
+        var proc = Process.Start(launchFilePath, argumentsLine);
         proc.WaitForExit();
         return proc.ExitCode;
       }
