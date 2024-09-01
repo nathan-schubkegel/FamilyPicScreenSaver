@@ -45,8 +45,16 @@ namespace FamilyPicScreenSaver
 
     private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
     {
-      using (Process.Start(((LinkLabel)sender).Text))
+      try
       {
+        using var _ = Process.Start(new ProcessStartInfo(((LinkLabel)sender).Text)
+        {
+          UseShellExecute = true,
+        });
+      }
+      catch
+      {
+        MessageBox.Show("Unable to launch browser window... I guess you can copy paste the link text manually eh?");
       }
     }
   }
