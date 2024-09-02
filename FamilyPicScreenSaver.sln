@@ -7,6 +7,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FamilyPicScreenSaver", "Fam
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Launcher", "Launcher\Launcher.csproj", "{599D20BF-1835-4304-A1E2-C8726A281E32}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FamilyPicScreenSaver.Lib", "FamilyPicScreenSaver.Lib\FamilyPicScreenSaver.Lib.csproj", "{451B2E2D-2506-488A-851A-8B4C9E417264}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FamilyPicScreenSaver.Lib.Tests", "FamilyPicScreenSaver.Lib.Tests\FamilyPicScreenSaver.Lib.Tests.csproj", "{813C5EEC-DCE2-44AA-AB0C-F9F9E9D949E0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +25,14 @@ Global
 		{599D20BF-1835-4304-A1E2-C8726A281E32}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{599D20BF-1835-4304-A1E2-C8726A281E32}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{599D20BF-1835-4304-A1E2-C8726A281E32}.Release|Any CPU.Build.0 = Release|Any CPU
+		{451B2E2D-2506-488A-851A-8B4C9E417264}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{451B2E2D-2506-488A-851A-8B4C9E417264}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{451B2E2D-2506-488A-851A-8B4C9E417264}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{451B2E2D-2506-488A-851A-8B4C9E417264}.Release|Any CPU.Build.0 = Release|Any CPU
+		{813C5EEC-DCE2-44AA-AB0C-F9F9E9D949E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{813C5EEC-DCE2-44AA-AB0C-F9F9E9D949E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{813C5EEC-DCE2-44AA-AB0C-F9F9E9D949E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{813C5EEC-DCE2-44AA-AB0C-F9F9E9D949E0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
