@@ -7,7 +7,7 @@ Please refer to <http://unlicense.org/>
 using Rope;
 using System;
 
-namespace FamilyPicScreenSaver
+namespace FamilyPicScreenSaver.Lib
 {
   public static class RopeUtils
   {
@@ -34,7 +34,7 @@ namespace FamilyPicScreenSaver
     }
 
     [ThreadStatic]
-    private static Random _rando;
+    private static Random? _rando;
 
     public static Rope<T> Randomize<T>(Rope<T> input) where T : IEquatable<T>
     {
