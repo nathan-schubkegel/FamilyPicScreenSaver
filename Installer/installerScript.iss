@@ -31,6 +31,11 @@ CloseApplicationsFilter=*.exe,*.dll,*.scr
 ; pick where the application installs to by default - {autopf} means c:\Program Files
 DefaultDirName={autopf}\Family Pic Screen Saver
 
+; Make the user pick the directory each time
+; (not because we're sadists, but without this the installer wizard doesn't show that page
+;  for upgrade installs. It's a "flow" thing)
+UsePreviousAppDir=no
+
 ; start menu folder name
 DefaultGroupName=Family Pic Screen Saver
 
