@@ -57,6 +57,9 @@ DisableReadyPage=yes
 Source: "build\FamilyPicScreenSaver\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 Source: "build\Launcher\Launcher.exe"; DestDir: "{sys}"; DestName: "Family Pic Screen Saver.scr"; Flags: ignoreversion
 
+[Run]
+Filename: "control"; Parameters: "desk.cpl,,@screensaver"; Description: "Show the Change Screen Saver dialog"; StatusMsg: "Showing the Change Screen Saver dialog..."; Flags: shellexec postinstall runasoriginaluser
+
 [Icons]
 Name: "{commondesktop}\Family Pic Screen Saver"; Filename: "{app}\FamilyPicScreenSaver.exe"; WorkingDir: "{app}"; Parameters: "/s"
 Name: "{group}\Family Pic Screen Saver"; Filename: "{app}\FamilyPicScreenSaver.exe"; WorkingDir: "{app}"; Parameters: "/s"
