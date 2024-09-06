@@ -58,7 +58,13 @@ Source: "build\FamilyPicScreenSaver\*"; DestDir: "{app}"; Flags: ignoreversion r
 Source: "build\Launcher\Launcher.exe"; DestDir: "{sys}"; DestName: "Family Pic Screen Saver.scr"; Flags: ignoreversion
 
 [Run]
-Filename: "control"; Parameters: "desk.cpl,,@screensaver"; Description: "Show the Change Screen Saver dialog"; StatusMsg: "Showing the Change Screen Saver dialog..."; Flags: shellexec postinstall runasoriginaluser
+; Set the screen saver and show the windows dialog
+; see from https://stackoverflow.com/questions/49791065/silently-set-the-screensaver-on-windows-from-the-command-line
+;
+; Gotta use rundll32 from the 'sysnative' directory so it'll run as a 64-bit app not a 32-bit app like the installer
+; and then the screen saver selections will be weirdly unavailable.
+; see https://stackoverflow.com/questions/18982740/running-system32-programs-instead-of-syswow64-when-launching-from-mingw
+Filename: "{win}\sysnative\rundll32.exe"; Parameters: "desk.cpl,InstallScreenSaver Family Pic Screen Saver.scr"; Description: "Change this computer's screen saver to Family Pic Screen Saver"; Flags: postinstall runasoriginaluser
 
 [Icons]
 Name: "{commondesktop}\Family Pic Screen Saver"; Filename: "{app}\FamilyPicScreenSaver.exe"; WorkingDir: "{app}"; Parameters: "/s"
