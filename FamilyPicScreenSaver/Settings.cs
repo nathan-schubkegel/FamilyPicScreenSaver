@@ -5,11 +5,9 @@ Please refer to <http://unlicense.org/>
 */
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using FamilyPicScreenSaver.Lib;
-using Rope;
 
 namespace FamilyPicScreenSaver
 {
@@ -28,7 +26,7 @@ namespace FamilyPicScreenSaver
     private static readonly string _enumeratedMediaFilesSettingFilePath = Path.Combine(
       _settingsFolderPath, "EnumeratedMediaFiles.txt");
 
-    public static List<string> LoadMediaFolders()
+    public static ImmutableList<string> LoadMediaFolders()
     {
       try
       {
@@ -40,14 +38,14 @@ namespace FamilyPicScreenSaver
               .Select(x => x?.Trim())
               .Where(x => !string.IsNullOrEmpty(x))
               .Distinct(StringComparer.Ordinal)
-              .ToList();
+              .ToImmutableList();
           }
         }
       }
       catch
       {
         // better to not show any pictures if you have bogus settings
-        return [];
+        return ImmutableList<string>.Empty;
       }
 
       return
@@ -57,7 +55,7 @@ namespace FamilyPicScreenSaver
       ];
     }
 
-    public static void SaveMediaFolders(List<string> folders)
+    public static void SaveMediaFolders(ImmutableList<string> folders)
     {
       try
       {
@@ -76,7 +74,7 @@ namespace FamilyPicScreenSaver
       }
     }
 
-    public static List<string> LoadEnumeratedMediaFolders()
+    public static ImmutableList<string> LoadEnumeratedMediaFolders()
     {
       try
       {
@@ -87,17 +85,17 @@ namespace FamilyPicScreenSaver
             return File.ReadLines(_enumeratedMediaFoldersSettingFilePath)
               .Select(x => x?.Trim())
               .Where(x => !string.IsNullOrEmpty(x))
-              .ToList();
+              .ToImmutableList();
           }
         }
       }
       catch
       {
       }
-      return new();
+      return ImmutableList<string>.Empty;
     }
 
-    public static void SaveEnumeratedMediaFolders(List<string> folders)
+    public static void SaveEnumeratedMediaFolders(ImmutableList<string> folders)
     {
       try
       {
@@ -136,7 +134,7 @@ namespace FamilyPicScreenSaver
       return null;
     }
 
-    public static Rope<Rope<char>> LoadEnumeratedMediaFiles()
+    public static ImmutableList<string> LoadEnumeratedMediaFiles()
     {
       try
       {
@@ -144,27 +142,20 @@ namespace FamilyPicScreenSaver
         {
           if (File.Exists(_enumeratedMediaFilesSettingFilePath))
           {
-            Rope<char> lastPath = Rope<char>.Empty;
             return File.ReadLines(_enumeratedMediaFilesSettingFilePath)
               .Select(x => x?.Trim())
               .Where(x => !string.IsNullOrEmpty(x))
-              .Select(x =>
-              {
-                var result = RopeUtils.HeuristicToPerfect(lastPath, x);
-                lastPath = result;
-                return result;
-              })
-              .ToRope();
+              .ToImmutableList();
           }
         }
       }
       catch
       {
       }
-      return Rope<Rope<char>>.Empty;
+      return ImmutableList<string>.Empty;
     }
 
-    public static void SaveEnumeratedMediaFiles(Rope<Rope<char>> allMedia)
+    public static void SaveEnumeratedMediaFiles(ImmutableList<string> allMedia)
     {
       try
       {

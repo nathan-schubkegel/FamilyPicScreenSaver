@@ -6,11 +6,11 @@ Please refer to <http://unlicense.org/>
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FamilyPicScreenSaver.Lib;
-using Rope;
 
 namespace FamilyPicScreenSaver
 {
@@ -20,13 +20,24 @@ namespace FamilyPicScreenSaver
 
     public static readonly string BrokenPicPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "broken.jpg");
 
-    private class RopeHolder
-    {
-      public Rope<Rope<char>> Value { get; init; }
-    }
-    private volatile RopeHolder _media = new RopeHolder { Value = Rope<Rope<char>>.Empty.Add(LoadingPicPath) };
+    private volatile ImmutableList<string> _media = null;
 
-    public Rope<Rope<char>> Media => _media.Value;
+    public ImmutableList<string> Media
+    {
+      get
+      {
+        var media = _media;
+        if (media == null) // null means the scan hasn't recorded any yet
+        {
+          media = [MediaFinder.LoadingPicPath];
+        }
+        else if (media.Count == 0) // zero means the scan found no files
+        {
+          media = [MediaFinder.BrokenPicPath];
+        }
+        return media;
+      }
+    }
 
     private readonly object _purgeTaskStartLock = new();
     private Task _scanTask;
@@ -40,10 +51,10 @@ namespace FamilyPicScreenSaver
 
     private void Scan()
     {
-      Rope<Rope<char>> initialMedia = Settings.LoadEnumeratedMediaFiles();
+      ImmutableList<string> initialMedia = Settings.LoadEnumeratedMediaFiles();
       TimeSpan? initialMediaAge = Settings.LoadAgeOfEnumeratedMediaFiles();
-      List<string> initialEnumeratedMediaFolders = Settings.LoadEnumeratedMediaFolders();
-      List<string> rootDirectories = Settings.LoadMediaFolders();
+      ImmutableList<string> initialEnumeratedMediaFolders = Settings.LoadEnumeratedMediaFolders();
+      ImmutableList<string> rootDirectories = Settings.LoadMediaFolders();
 
       // does it look like we don't need to rescan?
       if (rootDirectories.SequenceEqual(initialEnumeratedMediaFolders) &&
@@ -51,12 +62,13 @@ namespace FamilyPicScreenSaver
         initialMediaAge < TimeSpan.FromDays(5))
       {
         // ok this is good
-        _media = new RopeHolder { Value = initialMedia };
+        _media = initialMedia;
       }
       else // re-scan
       {
-        var filesGroupedByFolder = Rope<Rope<Rope<char>>>.Empty;
-        Rope<char> lastPath = Rope<char>.Empty;
+        _media = null;
+
+        var filesGroupedByFolder = ImmutableList<ImmutableList<string>>.Empty;
         foreach (var rootDir in rootDirectories)
         {
           // NOTE: doing this the hard way (rather than using SearchOption.AllDirectories)
@@ -66,18 +78,12 @@ namespace FamilyPicScreenSaver
           while (stack.Count > 0)
           {
             var next = stack.Pop();
-            var newFiles = Rope<Rope<char>>.Empty;
+            var newFiles = ImmutableList<string>.Empty;
             try
             {
               newFiles = Directory.EnumerateFiles(next)
                 .Where(file => FilePathIsProbablyPicture(file) || FilePathIsProbablyVideo(file))
-                .Select(x =>
-                {
-                  var result = RopeUtils.HeuristicToPerfect(lastPath, x);
-                  lastPath = result;
-                  return result;
-                })
-                .ToRope();
+                .ToImmutableList();
             }
             catch // usually it's something like "don't have access to the directory"
             {
@@ -86,8 +92,8 @@ namespace FamilyPicScreenSaver
 
             if (!newFiles.IsEmpty)
             {
-              filesGroupedByFolder += newFiles;
-              _media = new RopeHolder { Value = _media.Value + newFiles };
+              filesGroupedByFolder = filesGroupedByFolder.Add(newFiles);
+              _media = (_media ?? ImmutableList<string>.Empty).AddRange(newFiles);
             }
 
             try
@@ -107,25 +113,25 @@ namespace FamilyPicScreenSaver
 
         if (filesGroupedByFolder.IsEmpty)
         {
-          _media = new RopeHolder { Value = Rope<Rope<char>>.Empty.Add(BrokenPicPath) };
+          _media = ImmutableList<string>.Empty;
         }
         else
         {
           // randomize by folder
-          var randomized = RopeUtils.Randomize(filesGroupedByFolder);
-          _media = new RopeHolder { Value = RopeUtils.SelectMany(randomized) };
+          var randomized = Randomizer.Randomize(filesGroupedByFolder);
+          _media = randomized.SelectMany(x => x).ToImmutableList();
         }
 
         // prevent application shutdown until these files are done being written
         Program.PreventExitDuring(() =>
         {
           Settings.SaveEnumeratedMediaFolders(rootDirectories);
-          Settings.SaveEnumeratedMediaFiles(_media.Value);
+          Settings.SaveEnumeratedMediaFiles(_media);
         });
       }
     }
 
-    public void PurgeMediaThatDoesntExist()
+    public void NotifyMediaFileDidNotExist()
     {
       lock (_purgeTaskStartLock)
       {
@@ -138,6 +144,11 @@ namespace FamilyPicScreenSaver
 
     private void Purge()
     {
+      if (_media == null)
+      {
+        return; // nothing to purge
+      }
+
       // the best case is the files are only temporarily unavailable
       // (I link to files on a network drive, and sometimes the network computer isn't on)
       // so if any root media directories don't exist, then remove all media from those directories
@@ -149,23 +160,17 @@ namespace FamilyPicScreenSaver
           exists = Directory.Exists(rootDir);
         }
         catch { }
+
         if (!exists)
         {
-          var newMedia = _media.Value;
-          for (int i = newMedia.Count - 1; i >= 0; i--)
-          {
-            // this isn't perfect. Would be tricked if you had 2 root dirs named "cat" and "cats"
-            // but meh it's good enough for me.
-            if (_media.Value[i].StartsWith(rootDir))
-            {
-              newMedia = newMedia.RemoveAt(i);
-            }
-          }
-          if (newMedia.Count == 0)
-          {
-            newMedia = newMedia.Add(MediaFinder.BrokenPicPath);
-          }
-          _media = new RopeHolder { Value = newMedia };
+          // add trailing slash so simple string.StartsWith() check can be used and
+          // will not be tricked by 2 root dirs named "cat" and "cats"
+          var rootDir1 = (rootDir.EndsWith('/') || rootDir.EndsWith('\\')) ? rootDir : (rootDir + '\\');
+          var rootDir2 = (rootDir.EndsWith('/') || rootDir.EndsWith('\\')) ? rootDir : (rootDir + '/');
+
+          _media = _media
+            .Where(x => !x.StartsWith(rootDir1) && !x.StartsWith(rootDir2))
+            .ToImmutableList();
         }
       }
     }

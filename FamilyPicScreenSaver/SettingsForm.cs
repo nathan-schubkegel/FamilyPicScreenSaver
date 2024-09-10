@@ -8,6 +8,7 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Collections.Immutable;
 using System.Reflection;
 using System.Windows.Forms;
 
@@ -23,7 +24,7 @@ namespace FamilyPicScreenSaver
 
     private void okButton_Click(object sender, EventArgs e)
     {
-      Settings.SaveMediaFolders(_pictureFolderPathsTextBox.Lines.ToList());
+      Settings.SaveMediaFolders(_pictureFolderPathsTextBox.Lines.ToImmutableList());
       Close();
     }
 

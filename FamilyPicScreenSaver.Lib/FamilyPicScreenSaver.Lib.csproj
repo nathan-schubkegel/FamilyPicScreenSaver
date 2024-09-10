@@ -6,7 +6,4 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="FlatlinerDOA.Rope" Version="1.3.0" />
-  </ItemGroup>
 </Project>

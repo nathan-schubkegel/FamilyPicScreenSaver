@@ -1,13 +1,17 @@
 using FamilyPicScreenSaver.Lib;
+using System.Collections.Immutable;
+using System.Linq;
 
 namespace FamilyPicScreenSaver.Tests
 {
-  public class Tests
+  public class RandomizerTests
   {
     [Test]
     public void Randomize_ForEmptyInput_ResultIsEmpty()
     {
-      Assert.That(RopeUtils.Randomize<char>("").ToString(), Is.EqualTo(""));
+      var list = ImmutableList<char>.Empty;
+      list = Randomizer.Randomize(list);
+      Assert.That(list, Is.Empty);
     }
 
     [Test]
@@ -15,7 +19,9 @@ namespace FamilyPicScreenSaver.Tests
     {
       for (int i = 0; i < 50; i++)
       {
-        Assert.That(RopeUtils.Randomize<char>("abc").ToString(),
+        ImmutableList<char> list = ['a', 'b', 'c'];
+        list = Randomizer.Randomize(list);
+        Assert.That(new string(list.ToArray()),
           Is.AnyOf("abc", "acb", "bac", "bca", "cab", "cba"));
       }
     }
@@ -25,9 +31,11 @@ namespace FamilyPicScreenSaver.Tests
     {
       int repeatCount = 0;
       string lastAnswer = null;
+      ImmutableList<char> list = ['a', 'b', 'c'];
       for (int i = 0; i < 50; i++)
       {
-        string newAnswer = RopeUtils.Randomize<char>("abc").ToString();
+        list = Randomizer.Randomize(list);
+        string newAnswer = new string(list.ToArray());
         if (newAnswer == lastAnswer)
         {
           repeatCount++;
