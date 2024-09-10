@@ -7,10 +7,10 @@ Please refer to <http://unlicense.org/>
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
-using Rope;
 using Nito.Collections;
 using System.IO;
 
@@ -26,7 +26,7 @@ namespace FamilyPicScreenSaver
     private readonly object _currentLock = new object();
     private readonly Deque<int> _previousIndexes = new();
     private readonly Deque<int> _nextIndexes = new();
-    private Rope<Rope<char>> _lastObservedMedia = Rope<Rope<char>>.Empty;
+    private ImmutableList<string> _lastObservedMedia = ImmutableList<string>.Empty;
     private int _currentAutomaticAdvanceCount;
     private bool _hasHadUserInteraction;
     private int? _currentMediaIndex;
@@ -224,7 +224,7 @@ namespace FamilyPicScreenSaver
         if (!fileExists)
         {
           // start some async work to eliminate non-existing files
-          _mediaFinder.PurgeMediaThatDoesntExist();
+          _mediaFinder.NotifyMediaFileDidNotExist();
           debugInfo.Append(" (file does not exist!)");
         }
         
