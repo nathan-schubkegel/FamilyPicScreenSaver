@@ -136,7 +136,7 @@ namespace FamilyPicScreenSaver
           // pick a random new image every 10, so
           // 1.) reduce constant jarring changes in time period of images/videos shown
           // 2.) don't get stuck watching a hundred of young Alaric's pictures of the floor
-          else if (_currentAutomaticAdvanceCount >= 10)  // TODO: here is where to make it navigate manually once user interaction has occurred
+          else if (_currentAutomaticAdvanceCount >= 10 && !_hadUserInteraction)
           {
             debugInfo.Append($"random after 10 advances");
             _currentFilePath = GetRandomMediaFilePath();
