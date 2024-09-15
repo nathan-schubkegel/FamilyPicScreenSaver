@@ -23,22 +23,22 @@ namespace FamilyPicScreenSaver
     private readonly Random _random = new Random((int)(DateTime.UtcNow.Ticks % int.MaxValue));
     private readonly System.Threading.Timer _mediaChangeTimer;
 
-    private readonly object _currentLock = new object();
-    private readonly Deque<int> _previousIndexes = new();
-    private readonly Deque<int> _nextIndexes = new();
-    private ImmutableList<string> _lastObservedMedia = ImmutableList<string>.Empty;
+    private readonly object _lock = new object();
+    private ImmutableList<string> _mediaAtLastNavigation = ImmutableList<string>.Empty.Add(MediaFinder.LoadingPicPath);
+    private ImmutableList<string> _media = ImmutableList<string>.Empty.Add(MediaFinder.LoadingPicPath);
+    private readonly Deque<string> _previousFilePaths = new();
+    private readonly Deque<string> _nextFilePaths = new();
+    private string _currentFilePath = MediaFinder.LoadingPicPath;
+    private MediaType _currentFileType = MediaType.Picture;
+    private Stopwatch _currentFileDisplayedTime;
+    private TimeSpan _currentFileTimeout;
     private int _currentAutomaticAdvanceCount;
-    private bool _hasHadUserInteraction;
-    private int? _currentMediaIndex;
-    private string _currentFilePath;
-    private MediaType _currentMediaType;
-    private Stopwatch _currentMediaDisplayedTime;
-    private TimeSpan _currentMediaTimeout;
-    private string _debugInfo;
+    private bool _hadUserInteraction;
+    private string _debugInfo = "";
 
-    public string DebugInfo { get { lock (_currentLock) return _debugInfo; } }
+    public string DebugInfo { get { lock (_lock) return _debugInfo; } }
 
-    public event Action MediaChanged;
+    public event Action SelectedMediaChanged;
 
     public MediaSelector(LibVLC libVlc)
     {
@@ -65,27 +65,27 @@ namespace FamilyPicScreenSaver
       Automatic,
     }
 
-    private int GetRandomIndex()
+    private string GetRandomMediaFilePath()
     {
-      var newIndex = _random.Next(_mediaFinder.Media.Count);
-      if (newIndex == _currentMediaIndex)
+      var newIndex = _random.Next(_media.Count);
+
+      // try to not randomly choose the same thing as current
+      if (_currentFilePath == _media[newIndex])
       {
-        return newIndex + 1;
+        newIndex = (newIndex + 1) % _media.Count;
       }
-      else
-      {
-        return newIndex;
-      }
+
+      return _media[newIndex];
     }
 
     private void Navigate(NavigationDirection navigationDirection, NavigationActor navigationActor)
     {
-      lock (_currentLock)
+      lock (_lock)
       {
         StringBuilder debugInfo = new();
         debugInfo.Append($"{navigationDirection} {navigationActor}, ");
 
-        var media = _mediaFinder.Media;
+        _media = _mediaFinder.Media;
 
         if (navigationActor == NavigationActor.Automatic)
         {
@@ -97,21 +97,19 @@ namespace FamilyPicScreenSaver
         }
 
         // save the current image/video we're looking at for back/forward functionality
-        if (_currentMediaIndex != null)
+        if (_currentFilePath != MediaFinder.LoadingPicPath && 
+            _currentFilePath != MediaFinder.BrokenPicPath)
         {
           switch (navigationDirection)
           {
             case NavigationDirection.Forward:
-              _previousIndexes.AddToBack(_currentMediaIndex.Value);
-              while (_previousIndexes.Count > 1000) _previousIndexes.RemoveFromFront();
+            case NavigationDirection.Random:
+              _previousFilePaths.AddToBack(_currentFilePath);
+              while (_previousFilePaths.Count > 1000) _previousFilePaths.RemoveFromFront();
               break;
             case NavigationDirection.Back:
-              _nextIndexes.AddToBack(_currentMediaIndex.Value);
-              while (_nextIndexes.Count > 1000) _nextIndexes.RemoveFromFront();
-              break;
-            case NavigationDirection.Random:
-              _previousIndexes.AddToBack(_currentMediaIndex.Value);
-              while (_previousIndexes.Count > 1000) _previousIndexes.RemoveFromFront();
+              _nextFilePaths.AddToBack(_currentFilePath);
+              while (_nextFilePaths.Count > 1000) _nextFilePaths.RemoveFromFront();
               break;
           }
         }
@@ -120,104 +118,74 @@ namespace FamilyPicScreenSaver
         if (navigationActor == NavigationActor.Automatic)
         {
           // try to have some randomness while images are being found
-          if (_currentFilePath == MediaFinder.LoadingPicPath || _lastObservedMedia != media)
+          if (_currentFilePath == MediaFinder.LoadingPicPath || _mediaAtLastNavigation != _media)
           {
-            debugInfo.Append("loading or media count change");
-            _currentMediaIndex = GetRandomIndex();
-            _lastObservedMedia = media;
+            debugInfo.Append("loading or found media change");
+            _currentFilePath = GetRandomMediaFilePath();
           }
-          else if (_nextIndexes.Count > 0)
+          else if (_nextFilePaths.Count > 0)
           {
-            debugInfo.Append($"next index ({_nextIndexes.Count} remaining)");
-            _currentMediaIndex = _nextIndexes.RemoveFromBack();
-          }
-          // pick a random new image every 10, so
-          // 1.) reduce constant jarring changes in time period of images/videos shown
-          // 2.) don't get stuck watching a hundred of young Alaric's pictures of the floor
-          else if (_currentAutomaticAdvanceCount >= 10)
-          {
-            debugInfo.Append($"random after 10 advances");
-            _currentMediaIndex = GetRandomIndex();
+            debugInfo.Append($"next index ({_nextFilePaths.Count} remaining)");
+            _currentFilePath = _nextFilePaths.RemoveFromBack();
           }
           else if (navigationDirection == NavigationDirection.Random)
           {
             debugInfo.Append($"random");
-            _currentMediaIndex = GetRandomIndex();
+            _currentFilePath = GetRandomMediaFilePath();
           }
-          else if (_currentMediaIndex == null)
+          // pick a random new image every 10, so
+          // 1.) reduce constant jarring changes in time period of images/videos shown
+          // 2.) don't get stuck watching a hundred of young Alaric's pictures of the floor
+          else if (_currentAutomaticAdvanceCount >= 10)  // TODO: here is where to make it navigate manually once user interaction has occurred
           {
-            debugInfo.Append($"_currentMediaIndex == null");
-            _currentMediaIndex = GetRandomIndex();
+            debugInfo.Append($"random after 10 advances");
+            _currentFilePath = GetRandomMediaFilePath();
           }
           else
           {
             debugInfo.Append($"increment");
-            _currentMediaIndex++;
+            _currentFilePath = _media[(_media.IndexOf(_currentFilePath) + 1) % _media.Count];
           }
         }
         else if (navigationDirection == NavigationDirection.Forward)
         {
-          if (_nextIndexes.Count > 0)
+          if (_nextFilePaths.Count > 0)
           {
-            debugInfo.Append($"next index ({_nextIndexes.Count} remaining)");
-            _currentMediaIndex = _nextIndexes.RemoveFromBack();
-          }
-          else if (_currentMediaIndex == null)
-          {
-            debugInfo.Append($"_currentMediaIndex == null");
-            _currentMediaIndex = 0;
+            debugInfo.Append($"next index ({_nextFilePaths.Count} remaining)");
+            _currentFilePath = _nextFilePaths.RemoveFromBack();
           }
           else
           {
             debugInfo.Append($"increment");
-            _currentMediaIndex++;
+            _currentFilePath = _media[(_media.IndexOf(_currentFilePath) + 1) % _media.Count];
           }
         }
         else if (navigationDirection == NavigationDirection.Back)
         {
-          if (_previousIndexes.Count > 0)
+          if (_previousFilePaths.Count > 0)
           {
-            debugInfo.Append($"previous index ({_previousIndexes.Count} remaining)");
-            _currentMediaIndex = _previousIndexes.RemoveFromBack();
-          }
-          else if (_currentMediaIndex == null)
-          {
-            debugInfo.Append($"_currentMediaIndex == null");
-            _currentMediaIndex = media.Count - 1;
+            debugInfo.Append($"previous index ({_previousFilePaths.Count} remaining)");
+            _currentFilePath = _previousFilePaths.RemoveFromBack();
           }
           else
           {
             debugInfo.Append($"decrement");
-            _currentMediaIndex--;
+            var index = _media.IndexOf(_currentFilePath);
+            index = index <= 0 ? _media.Count - 1 : index - 1; // decrement
+            _currentFilePath = _media[index % _media.Count];
           }
         }
         else // NavigationDirection == Random
         {
           debugInfo.Append($"random");
-          _currentMediaIndex = GetRandomIndex();
-          _nextIndexes.Clear();
+          _currentFilePath = GetRandomMediaFilePath();
+          _nextFilePaths.Clear();
         }
 
-        // sanity check the new index
-        if (_currentMediaIndex < 0)
-        {
-          _currentMediaIndex = media.Count - 1;
-        }
-        if (_currentMediaIndex >= media.Count)
-        {
-          _currentMediaIndex = 0;
-        }
-        if (_currentMediaIndex == null)
-        {
-          _currentMediaIndex = 0;
-        }
-        // MediaFinder guarantees that media always has at least 1 item, so 0 is safe
-        debugInfo.Append($", index={_currentMediaIndex}");
+        _currentFileType = MediaFinder.FilePathIsProbablyVideo(_currentFilePath) 
+          ? MediaType.Video : MediaType.Picture;
 
-        _currentFilePath = media[_currentMediaIndex.Value].ToString();
-        _currentMediaType = MediaFinder.FilePathIsProbablyVideo(_currentFilePath) ? MediaType.Video : MediaType.Picture;
-
-        debugInfo.AppendLine($", {_currentMediaType}");
+        debugInfo.AppendLine($", {_currentFileType}");
         debugInfo.Append(_currentFilePath);
 
         var fileExists = File.Exists(_currentFilePath);
@@ -228,7 +196,7 @@ namespace FamilyPicScreenSaver
           debugInfo.Append(" (file does not exist!)");
         }
         
-        if (_currentMediaType == MediaType.Video)
+        if (_currentFileType == MediaType.Video)
         {
           _mediaPlayerController.Play(_currentFilePath);
           _paused = false;
@@ -236,24 +204,26 @@ namespace FamilyPicScreenSaver
           _mediaPlayerController.SetMuted(_muted);
 
           // when navigating automatically, just play 30 seconds of video
-          if (navigationActor == NavigationActor.Automatic && !_hasHadUserInteraction)
+          if (navigationActor == NavigationActor.Automatic && !_hadUserInteraction)
           {
-            _currentMediaDisplayedTime = Stopwatch.StartNew();
-            _currentMediaTimeout = TimeSpan.FromSeconds(30);
-            _mediaPlayerController.SeekToRandomTimeWithAtLeastThisMuchTimeLeft(_currentMediaTimeout);
+            _currentFileDisplayedTime = Stopwatch.StartNew();
+            _currentFileTimeout = TimeSpan.FromSeconds(30);
+            _mediaPlayerController.SeekToRandomTimeWithAtLeastThisMuchTimeLeft(_currentFileTimeout);
           }
           else
           {
-            _currentMediaDisplayedTime = null;
+            _currentFileDisplayedTime = null;
           }
         }
         else
         {
           _mediaPlayerController.Stop();
-          _currentMediaDisplayedTime = Stopwatch.StartNew();
-          _currentMediaTimeout = TimeSpan.FromSeconds(_currentFilePath == MediaFinder.LoadingPicPath ? 1 : 10);
+          _currentFileDisplayedTime = Stopwatch.StartNew();
+          _currentFileTimeout = TimeSpan.FromSeconds(
+            _currentFilePath == MediaFinder.LoadingPicPath ? 1 : 10);
         }
 
+        _mediaAtLastNavigation = _media;
         _debugInfo = debugInfo.ToString();
       }
 
@@ -262,7 +232,7 @@ namespace FamilyPicScreenSaver
       {
         try
         {
-          MediaChanged?.Invoke();
+          SelectedMediaChanged?.Invoke();
         }
         catch
         {
@@ -276,11 +246,11 @@ namespace FamilyPicScreenSaver
       _mediaPlayerController.AssociateWithVideoView(videoView);
     }
 
-    public (string FilePath, MediaType MediaType) GetCurrentMedia()
+    public (string FilePath, MediaType MediaType) GetSelectedMedia()
     {
-      lock (_currentLock)
+      lock (_lock)
       {
-        return (_currentFilePath, _currentMediaType);
+        return (_currentFilePath, _currentFileType);
       }
     }
 
@@ -291,9 +261,9 @@ namespace FamilyPicScreenSaver
 
     private void MediaChangeTimerTick(object state)
     {
-      lock (_currentLock)
+      lock (_lock)
       {
-        if (_currentMediaDisplayedTime?.Elapsed > _currentMediaTimeout && !Paused)
+        if (_currentFileDisplayedTime?.Elapsed > _currentFileTimeout && !Paused)
         {
           Navigate(NavigationDirection.Forward, NavigationActor.Automatic);
         }
@@ -302,27 +272,27 @@ namespace FamilyPicScreenSaver
 
     public void Next()
     {
-      lock (_currentLock)
+      lock (_lock)
       {
-        _hasHadUserInteraction = true;
+        _hadUserInteraction = true;
         Navigate(NavigationDirection.Forward, NavigationActor.Manual);
       }
     }
 
     public void Previous()
     {
-      lock (_currentLock)
+      lock (_lock)
       {
-        _hasHadUserInteraction = true;
+        _hadUserInteraction = true;
         Navigate(NavigationDirection.Back, NavigationActor.Manual);
       }
     }
 
     public void Random()
     {
-      lock (_currentLock)
+      lock (_lock)
       {
-        _hasHadUserInteraction = true;
+        _hadUserInteraction = true;
         Navigate(NavigationDirection.Random, NavigationActor.Manual);
       }
     }
@@ -332,18 +302,18 @@ namespace FamilyPicScreenSaver
       get => _paused;
       set
       {
-        lock (_currentLock)
+        lock (_lock)
         {
-          _hasHadUserInteraction = true;
+          _hadUserInteraction = true;
           _currentAutomaticAdvanceCount = 0;
           _paused = value;
           if (value)
           {
-            _currentMediaDisplayedTime?.Stop();
+            _currentFileDisplayedTime?.Stop();
           }
           else
           {
-            _currentMediaDisplayedTime?.Start();
+            _currentFileDisplayedTime?.Start();
           }
           _mediaPlayerController.SetPaused(value);
         }
@@ -356,8 +326,8 @@ namespace FamilyPicScreenSaver
       get => _muted;
       set
       {
-          _hasHadUserInteraction = true;
-        lock (_currentLock)
+        _hadUserInteraction = true;
+        lock (_lock)
         {
           _currentAutomaticAdvanceCount = 0;
           _muted = value;
