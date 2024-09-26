@@ -210,7 +210,7 @@ namespace FamilyPicScreenSaver
       }
       else if (e.KeyCode == Keys.O || e.KeyCode == Keys.F)
       {
-        using (Process.Start("explorer.exe", "/select, \"" + _mediaSelector.GetSelectedMedia().FilePath + "\"")) { }
+        using (Process.Start("explorer.exe", "/select," + _mediaSelector.GetSelectedMedia().FilePath)) { }
 
         // there's no guarantee this event isn't being fired from a LibLVC event
         // https://github.com/videolan/libvlcsharp/blob/3.8.5/docs/best_practices.md#do-not-call-libvlc-from-a-libvlc-event-without-switching-thread-first
